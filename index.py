@@ -1,6 +1,7 @@
 #coding=utf-8
 
 import urllib2
+import MySQLdb
 from bs4 import BeautifulSoup
 
 class Twitter:
@@ -10,13 +11,19 @@ class Twitter:
 		#初始化headers
 		self.headers = { 'User-Agent' : self.user_agent }
 		self.urlList = []
+		# self.months = dict(January = 1, February = 2, March = 3, April = 4, May = 5, June = 6, July = 7, August = 8, September = 9, October = 10, November = 11, December = 12)
+		self.months = dict(Jan = '1', Feb = '2', Mar = '3', Apr = '4', May = '5', Jun = '6', Jul = '7', Aug = '8', Sep = '9', Oct = '10', Nov = '11', Dec = '12')
+
+		db = MySQLdb.connect("127.0.0.1","root","root","twitter" )
+		# 使用cursor()方法获取操作游标 
+		cursor = db.cursor()
+		self.cursor = cur 
 		self.getPageHtml(self.initUrl)
 
 	def getPageHtml(self, url):
 		try:
 			request = urllib2.Request(url, headers = self.headers)
 			response = urllib2.urlopen(request)
-		    #将页面转化为UTF-8编码
 			pageHtml = response.read()
 			self.getPageInfo(pageHtml)
 
@@ -26,14 +33,32 @@ class Twitter:
 
 	def getPageInfo(self, pageHtml):
 		soup = BeautifulSoup(pageHtml, 'html.parser')
-		file_obj = open('a.html','w')
-		file_obj.write(pageHtml)
-		bio = soup.select_one(".ProfileHeaderCard-nameLink")
-		print dir(soup)
-		# print pageHtml
-		print bio
-		# print 123
-		# print pageHtml         
+		# file_obj = open('a.html','w')
+		# file_obj.write(pageHtml)
+
+		name = soup.select_one(".ProfileHeaderCard-nameLink").text
+		screenname = soup.select_one(".u-linkComplex-target").text
+		bio = soup.select_one(".ProfileHeaderCard-bio").text
+		jd = soup.select_one(".ProfileHeaderCard-joinDateText")['title']
+		location = soup.select_one(".ProfileHeaderCard-locationText").text
+		jd = jd.encode("utf-8")
+		jdlist = jd.split(' ')
+		joindate = jdlist[5] + "-" + self.months[jdlist[4]] + "-" + jdlist[3]
+
+		tn = soup.select_one(".ProfileNav-item--tweets").select_one(".ProfileNav-stat--link")['title']
+		tweetNum = tn.split(' ')[0]
+		fing = soup.select_one(".ProfileNav-item--following").select_one(".ProfileNav-stat--link")['title']
+		following = fing.split(' ')[0]
+		fers = soup.select_one(".ProfileNav-item--followers").select_one(".ProfileNav-stat--link")['title']
+		followers = fers.split(' ')[0]
+		fates = soup.select_one(".ProfileNav-item--favorites").select_one(".ProfileNav-stat--link")['title']
+		favorites = fates.split(' ')[0]
+
+		print followers
+		print following
+		print favorites
+
+		
 
 spider = Twitter()
 # def get_info():
