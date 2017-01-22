@@ -2,37 +2,50 @@
 
 import urllib2
 import MySQLdb
+import config
+import time
+# import chardet
 from bs4 import BeautifulSoup
 
-class Twitter:
+class Crawler:
 	def __init__(self):
-		self.initUrl = "https://twitter.com/taylorswift13"
-		self.user_agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'
 		#初始化headers
-		self.headers = { 'User-Agent' : self.user_agent }
+		self.headers = { 'User-Agent' : config.USER_AGENT }
 		self.urlList = []
-		# self.months = dict(January = 1, February = 2, March = 3, April = 4, May = 5, June = 6, July = 7, August = 8, September = 9, October = 10, November = 11, December = 12)
-		self.months = dict(Jan = '1', Feb = '2', Mar = '3', Apr = '4', May = '5', Jun = '6', Jul = '7', Aug = '8', Sep = '9', Oct = '10', Nov = '11', Dec = '12')
+		# self.months = dict(January = 1, February = 2, March = 3, \
+		# 		April = 4, May = 5, June = 6, July = 7, August = 8, \
+		# 		September = 9, October = 10, November = 11, December = 12)
+		self.months = dict(Jan = '1', Feb = '2', Mar = '3', Apr = '4', \
+						May = '5', Jun = '6', Jul = '7', Aug = '8', \
+						Sep = '9', Oct = '10', Nov = '11', Dec = '12')
 
-		db = MySQLdb.connect("127.0.0.1","root","root","twitter" )
+		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 		# 使用cursor()方法获取操作游标 
 		cursor = db.cursor()
-		self.cursor = cur 
-		self.getPageHtml(self.initUrl)
+		self.cursor = cursor
+		self.db = db
+		self.getPageHtml(config.INITIAL_URL)
 
 	def getPageHtml(self, url):
 		try:
 			request = urllib2.Request(url, headers = self.headers)
 			response = urllib2.urlopen(request)
 			pageHtml = response.read()
-			self.getPageInfo(pageHtml)
+			# char_type = chardet.detect(pageHtml)
+			# print char_type
+			# return
+			# response=requests.get(url)
+    		# response.encoding = 'utf-8' #将requests强制编码为utf_8
+			self.currentUser = 'taylorswift13'
+			self.getBasicInfo(pageHtml)
 
 		except urllib2.URLError, e:
 			if hasattr(e,"reason"):
 				print e.reason
 
-	def getPageInfo(self, pageHtml):
-		soup = BeautifulSoup(pageHtml, 'html.parser')
+	def getBasicInfo(self, pageHtml):
+		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
+		# print soup.originalEncoding
 		# file_obj = open('a.html','w')
 		# file_obj.write(pageHtml)
 
@@ -45,22 +58,66 @@ class Twitter:
 		jdlist = jd.split(' ')
 		joindate = jdlist[5] + "-" + self.months[jdlist[4]] + "-" + jdlist[3]
 
-		tn = soup.select_one(".ProfileNav-item--tweets").select_one(".ProfileNav-stat--link")['title']
-		tweetNum = tn.split(' ')[0]
-		fing = soup.select_one(".ProfileNav-item--following").select_one(".ProfileNav-stat--link")['title']
-		following = fing.split(' ')[0]
-		fers = soup.select_one(".ProfileNav-item--followers").select_one(".ProfileNav-stat--link")['title']
-		followers = fers.split(' ')[0]
-		fates = soup.select_one(".ProfileNav-item--favorites").select_one(".ProfileNav-stat--link")['title']
-		favorites = fates.split(' ')[0]
-
-		print followers
-		print following
-		print favorites
-
+		try:
+			tn = soup.select_one(".ProfileNav-item--tweets") \
+				.select_one(".ProfileNav-stat--link")['title']
+			tweetNum = tn.split(' ')[0].replace(',','')
+			if int(tweetNum) < 10:
+				print "tweetNum < 10"
+				return
+		except:
+			return
 		
+		try:
+			fing = soup.select_one(".ProfileNav-item--following") \
+						.select_one(".ProfileNav-stat--link")['title']
+			following = fing.split(' ')[0].replace(',','')
+		except:
+			following = 0
+		try:
+			fers = soup.select_one(".ProfileNav-item--followers") \
+					.select_one(".ProfileNav-stat--link")['title']
+			followers = fers.split(' ')[0].replace(',','')
+		except:
+			followers = 0
 
-spider = Twitter()
+		try:
+			fates = soup.select_one(".ProfileNav-item--favorites") \
+					.select_one(".ProfileNav-stat--link")['title']
+			favorites = fates.split(' ')[0].replace(',','')
+		except:
+			favorites = 0
+
+		# SQL 插入语句
+		sql = """INSERT INTO user(screenname, name, location, joinDate, bio, tweetNum, watchNum, 
+				fansNum, likeNum, created_at) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', 
+				'%s', '%s', '%s')""" % (screenname, name, location, joindate, bio, tweetNum, \
+				following, followers, favorites, time.strftime('%Y-%m-%d',time.localtime(time.time()))) 
+		try:
+		   # 执行sql语句
+		   self.cursor.execute(sql)
+		   # 提交到数据库执行
+		   # self.db.commit()
+		except:
+			print 1
+		   # return
+
+		tweets = soup.select(".js-stream-item")
+		for i in range(len(tweets)):
+			tt = tweets[i].select_one(".js-tweet-text-container").text.replace(u'\xa0', u' ').replace('\n',' ')
+			file_obj = open('tweet/' + self.currentUser + '.txt','a')
+			file_obj.write(tt)
+			# content.decode('big5').encode('utf8')
+		# print tweets
+
+	# def getTweet(): 
+
+
+	def crawlerFinish(self):
+		self.db.close()
+
+spider = Crawler()
+
 # def get_info():
 #     xuhao=[]
 #     project_name=[]
