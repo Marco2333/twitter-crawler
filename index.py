@@ -103,12 +103,40 @@ class Crawler:
 		   # return
 
 		tweets = soup.select(".js-stream-item")
+		file_obj = open('tweet/' + self.currentUser + '.txt','a')
 		for i in range(len(tweets)):
+			print i
 			tt = tweets[i].select_one(".js-tweet-text-container").text.replace(u'\xa0', u' ').replace('\n',' ')
-			file_obj = open('tweet/' + self.currentUser + '.txt','a')
-			file_obj.write(tt)
-			# content.decode('big5').encode('utf8')
-		# print tweets
+			try:
+				file_obj.write(tt.encode('utf-8'))
+			except:
+				print tt
+				continue
+			timestamp = tweets[i].select_one(".stream-item-header").select_one(".js-short-timestamp")['data-time']
+			print timestamp
+			itemFooter =  tweets[i].select_one(".stream-item-footer")
+			reply = itemFooter.select_one(".ProfileTweet-action--reply").select_one(".ProfileTweet-actionCount ").text
+			print reply
+			# reply = reply.encode('utf-8')
+			if reply.strip() == '':
+				reply = '0'
+			if reply.find('k') != -1:
+				reply = str(reply.replace('k', '').atof() * 1000)
+
+			retweet = itemFooter.select_one(".ProfileTweet-action--retweet").select_one(".ProfileTweet-actionCount ").text
+			if retweet.strip() == '':
+				retweet = '0'
+			if retweet.find('k') != -1:
+				retweet = str(retweet.replace('k', '').atof() * 1000)
+
+			favorite = itemFooter.select_one(".ProfileTweet-action--favorite").select_one(".ProfileTweet-actionCount ").text
+			if favorite.strip() == '':
+				favorite = '0'
+			if favorite.find('k') != -1:
+				favorite = str(favorite.replace('k', '') * 1000)
+
+			file_obj.write(reply + " " + retweet + " " + favorite)
+		file_obj.close()		
 
 	# def getTweet(): 
 
