@@ -46,9 +46,9 @@ class Crawler:
 	def getBasicInfo(self, pageHtml):
 		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
 		# print soup.originalEncoding
-		# file_obj = open('a.html','w')
-		# file_obj.write(pageHtml)
-
+		file_obj = open('a.html','w')
+		file_obj.write(pageHtml)
+		file_obj.close()
 		name = soup.select_one(".ProfileHeaderCard-nameLink").text
 		screenname = soup.select_one(".u-linkComplex-target").text
 		bio = soup.select_one(".ProfileHeaderCard-bio").text
@@ -93,49 +93,37 @@ class Crawler:
 				fansNum, likeNum, created_at) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', 
 				'%s', '%s', '%s')""" % (screenname, name, location, joindate, bio, tweetNum, \
 				following, followers, favorites, time.strftime('%Y-%m-%d',time.localtime(time.time()))) 
-		try:
-		   # 执行sql语句
-		   self.cursor.execute(sql)
-		   # 提交到数据库执行
-		   # self.db.commit()
-		except:
-			print 1
-		   # return
+		# try:
+		#    # 执行sql语句
+		#    # self.cursor.execute(sql)
+		#    # 提交到数据库执行
+		#    # self.db.commit()
+		# except:
+		# 	print 1
+		#    # return
 
 		tweets = soup.select(".js-stream-item")
 		file_obj = open('tweet/' + self.currentUser + '.txt','a')
 		for i in range(len(tweets)):
-			print i
 			tt = tweets[i].select_one(".js-tweet-text-container").text.replace(u'\xa0', u' ').replace('\n',' ')
 			try:
 				file_obj.write(tt.encode('utf-8'))
+				file_obj.write("\n")
 			except:
 				print tt
 				continue
 			timestamp = tweets[i].select_one(".stream-item-header").select_one(".js-short-timestamp")['data-time']
-			print timestamp
+			user = tweets[i].select_one(".stream-item-header").select_one(".username").select_one('b').text
 			itemFooter =  tweets[i].select_one(".stream-item-footer")
-			reply = itemFooter.select_one(".ProfileTweet-action--reply").select_one(".ProfileTweet-actionCount ").text
-			print reply
-			# reply = reply.encode('utf-8')
-			if reply.strip() == '':
-				reply = '0'
-			if reply.find('k') != -1:
-				reply = str(reply.replace('k', '').atof() * 1000)
-
-			retweet = itemFooter.select_one(".ProfileTweet-action--retweet").select_one(".ProfileTweet-actionCount ").text
-			if retweet.strip() == '':
-				retweet = '0'
-			if retweet.find('k') != -1:
-				retweet = str(retweet.replace('k', '').atof() * 1000)
-
-			favorite = itemFooter.select_one(".ProfileTweet-action--favorite").select_one(".ProfileTweet-actionCount ").text
-			if favorite.strip() == '':
-				favorite = '0'
-			if favorite.find('k') != -1:
-				favorite = str(favorite.replace('k', '') * 1000)
-
-			file_obj.write(reply + " " + retweet + " " + favorite)
+			reply = itemFooter.select_one(".ProfileTweet-action--reply").select_one(".ProfileTweet-actionCount")['data-tweet-stat-count']
+			retweet = itemFooter.select_one(".ProfileTweet-action--retweet").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
+			favorite = itemFooter.select_one(".ProfileTweet-action--favorite").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
+			
+			# print reply
+			# print retweet
+			# print favorite
+			file_obj.write(user + " " + timestamp + " " + reply + " " + retweet + " " + favorite)
+			file_obj.write('\n')
 		file_obj.close()		
 
 	# def getTweet(): 
