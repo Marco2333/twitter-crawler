@@ -1,16 +1,83 @@
 #coding=utf-8
-
+import urllib
 import urllib2
 import MySQLdb
 import config
 import time
 # import chardet
+import cookielib
 from bs4 import BeautifulSoup
 
+# #登录教务系统的URL
+# 
+# 
+# #利用cookie请求访问另一个网址，此网址是成绩查询网址
+# 
 class Crawler:
 	def __init__(self):
+
 		#初始化headers
-		self.headers = { 'User-Agent' : config.USER_AGENT }
+		# filename = 'cookie.txt'
+
+		#声明一个MozillaCookieJar对象实例来保存cookie，之后写入文件
+		# cookie = cookielib.MozillaCookieJar(filename)
+		# opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+		# postdata = urllib.urlencode({
+		# 			'session[username_or_email]':'mrmarcohan',
+		# 			'session[password]':'han123456',
+		# 			'authenticity_token':'f6d4aaabed56cf50ac43106ff4a561fcd21abd33'
+		# 		})
+		# loginUrl = 'http://https://twitter.com/login'
+		# # #模拟登录，并把cookie保存到变量
+		# result = opener.open(loginUrl, postdata)
+		# cookie.save(ignore_discard=True, ignore_expires=True)
+
+		# return
+		# gradeUrl = 'http://jwxt.sdu.edu.cn:7890/pls/wwwbks/bkscjcx.curscopre'
+		# #请求访问成绩查询网址
+		# result = opener.open(gradeUrl)
+		# print result.read()
+		# #保存cookie到cookie.txt中
+		self.headers = { 'User-Agent' : config.USER_AGENT}
+
+		request = urllib2.Request("https://twitter.com/login", headers = self.headers)
+		response = urllib2.urlopen(request)
+		pageHtml = response.read()
+		soup = BeautifulSoup(pageHtml, 'html.parser')
+		csrf = soup.find_all("input", attrs={"name": "authenticity_token"})[0]['value']
+
+		print csrf
+
+		headers = {    
+			'User-Agent':config.USER_AGENT,
+			'referer':'https://twitter.com/login'
+		}    
+  		
+		postdata = {
+			'session[username_or_email]':'mrmarcohan',
+			'session[password]':'han123456',
+			'authenticity_token':csrf,
+			'scribe_log':'',
+			'redirect_after_login':''
+		}
+
+		req = urllib2.Request(    
+			url = 'https://twitter.com/sessions',	
+			data = urllib.urlencode(postdata),
+			headers = headers	
+		)
+
+		res = urllib2.urlopen(req)
+		page = res.read()
+		print page
+
+		file_obj = open('a.html','w')
+		file_obj.write(page)
+		file_obj.close()
+
+		return 
+
+
 		self.urlList = []
 		# self.months = dict(January = 1, February = 2, March = 3, \
 		# 		April = 4, May = 5, June = 6, July = 7, August = 8, \
@@ -35,7 +102,7 @@ class Crawler:
 			# print char_type
 			# return
 			# response=requests.get(url)
-    		# response.encoding = 'utf-8' #将requests强制编码为utf_8
+			# response.encoding = 'utf-8' #将requests强制编码为utf_8
 			self.currentUser = 'taylorswift13'
 			self.getBasicInfo(pageHtml)
 
@@ -49,6 +116,7 @@ class Crawler:
 		file_obj = open('a.html','w')
 		file_obj.write(pageHtml)
 		file_obj.close()
+		return
 		name = soup.select_one(".ProfileHeaderCard-nameLink").text
 		screenname = soup.select_one(".u-linkComplex-target").text
 		bio = soup.select_one(".ProfileHeaderCard-bio").text
