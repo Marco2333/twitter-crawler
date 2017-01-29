@@ -4,55 +4,34 @@ import urllib2
 import MySQLdb
 import config
 import time
-# import chardet
+import Queue
 import cookielib
 from bs4 import BeautifulSoup
 
-# #登录教务系统的URL
-# 
-# 
-# #利用cookie请求访问另一个网址，此网址是成绩查询网址
-# 
+
 class Crawler:
 	def __init__(self):
 
-		#初始化headers
-		# filename = 'cookie.txt'
+		#获取一个保存cookie的对象
+		cj = cookielib.LWPCookieJar()
+		#将一个保存cookie对象，和一个HTTP的cookie的处理器绑定
+		cookie_support = urllib2.HTTPCookieProcessor(cj)
+		#创建一个opener，将保存了cookie的http处理器，还有设置一个handler用于处理http的URL的打开
+		opener = urllib2.build_opener(cookie_support, urllib2.HTTPHandler)
+		#将包含了cookie、http处理器、http的handler的资源和urllib2对象板顶在一起
+		urllib2.install_opener(opener)
 
-		#声明一个MozillaCookieJar对象实例来保存cookie，之后写入文件
-		# cookie = cookielib.MozillaCookieJar(filename)
-		# opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
-		# postdata = urllib.urlencode({
-		# 			'session[username_or_email]':'mrmarcohan',
-		# 			'session[password]':'han123456',
-		# 			'authenticity_token':'f6d4aaabed56cf50ac43106ff4a561fcd21abd33'
-		# 		})
-		# loginUrl = 'http://https://twitter.com/login'
-		# # #模拟登录，并把cookie保存到变量
-		# result = opener.open(loginUrl, postdata)
-		# cookie.save(ignore_discard=True, ignore_expires=True)
+		headers = {    
+			'User-Agent':config.USER_AGENT,
+			'referer':'https://twitter.com/login'
+		}   
 
-		# return
-		# gradeUrl = 'http://jwxt.sdu.edu.cn:7890/pls/wwwbks/bkscjcx.curscopre'
-		# #请求访问成绩查询网址
-		# result = opener.open(gradeUrl)
-		# print result.read()
-		# #保存cookie到cookie.txt中
-		self.headers = { 'User-Agent' : config.USER_AGENT}
-
-		request = urllib2.Request("https://twitter.com/login", headers = self.headers)
+		request = urllib2.Request("https://twitter.com/login", headers = headers)
 		response = urllib2.urlopen(request)
 		pageHtml = response.read()
 		soup = BeautifulSoup(pageHtml, 'html.parser')
 		csrf = soup.find_all("input", attrs={"name": "authenticity_token"})[0]['value']
 
-		print csrf
-
-		headers = {    
-			'User-Agent':config.USER_AGENT,
-			'referer':'https://twitter.com/login'
-		}    
-  		
 		postdata = {
 			'session[username_or_email]':'mrmarcohan',
 			'session[password]':'han123456',
@@ -69,16 +48,26 @@ class Crawler:
 
 		res = urllib2.urlopen(req)
 		page = res.read()
-		print page
 
-		file_obj = open('a.html','w')
-		file_obj.write(page)
-		file_obj.close()
+		request = urllib2.Request("https://twitter.com/taylorswift13/following", headers = headers)
+		response = urllib2.urlopen(request)
+		pageHtml = response.read()
+		
+		# file_obj = open('a.html','w')
+		# file_obj.write(pageHtml)
+		# file_obj.close()
 
-		return 
+		# cookie = cookielib.CookieJar()
+		# opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+		# response = opener.open('https://twitter.com')
+		# for item in cookie:
+		# 	print item
+		# 	# if item.name == 'some_cookie_item_name':
+		# 		# print item.value
+		# return
 
-
-		self.urlList = []
+		self.urlList = Queue.Queue()
+		self.urlList.put(config.INITIAL_USER)
 		# self.months = dict(January = 1, February = 2, March = 3, \
 		# 		April = 4, May = 5, June = 6, July = 7, August = 8, \
 		# 		September = 9, October = 10, November = 11, December = 12)
@@ -91,32 +80,33 @@ class Crawler:
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db
-		self.getPageHtml(config.INITIAL_URL)
+		self.getUsersInfo()
 
-	def getPageHtml(self, url):
+	def getUsersInfo(self):
+		user = self.urlList.get()
+		url = "https://twitter.com/" + user
+		print url
+
+		self.currentUser = user
+		if self.getBasicInfo() != -1:
+			self.getFollowing()
+			self.getFollowers()
+
+	def getBasicInfo(self):
+		url = "https://twitter.com/" + self.currentUser
+
 		try:
 			request = urllib2.Request(url, headers = self.headers)
 			response = urllib2.urlopen(request)
 			pageHtml = response.read()
-			# char_type = chardet.detect(pageHtml)
-			# print char_type
-			# return
-			# response=requests.get(url)
-			# response.encoding = 'utf-8' #将requests强制编码为utf_8
-			self.currentUser = 'taylorswift13'
-			self.getBasicInfo(pageHtml)
 
 		except urllib2.URLError, e:
 			if hasattr(e,"reason"):
 				print e.reason
+			return
 
-	def getBasicInfo(self, pageHtml):
 		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
-		# print soup.originalEncoding
-		file_obj = open('a.html','w')
-		file_obj.write(pageHtml)
-		file_obj.close()
-		return
+
 		name = soup.select_one(".ProfileHeaderCard-nameLink").text
 		screenname = soup.select_one(".u-linkComplex-target").text
 		bio = soup.select_one(".ProfileHeaderCard-bio").text
@@ -130,9 +120,8 @@ class Crawler:
 			tn = soup.select_one(".ProfileNav-item--tweets") \
 				.select_one(".ProfileNav-stat--link")['title']
 			tweetNum = tn.split(' ')[0].replace(',','')
-			if int(tweetNum) < 10:
-				print "tweetNum < 10"
-				return
+			if int(tweetNum) < 50:
+				return -1
 		except:
 			return
 		
@@ -161,14 +150,13 @@ class Crawler:
 				fansNum, likeNum, created_at) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', 
 				'%s', '%s', '%s')""" % (screenname, name, location, joindate, bio, tweetNum, \
 				following, followers, favorites, time.strftime('%Y-%m-%d',time.localtime(time.time()))) 
-		# try:
-		#    # 执行sql语句
-		#    # self.cursor.execute(sql)
-		#    # 提交到数据库执行
-		#    # self.db.commit()
-		# except:
-		# 	print 1
-		#    # return
+		try:
+		   # 执行sql语句
+		   self.cursor.execute(sql)
+		   # 提交到数据库执行
+		   self.db.commit()
+		except:
+		   return
 
 		tweets = soup.select(".js-stream-item")
 		file_obj = open('tweet/' + self.currentUser + '.txt','a')
@@ -187,60 +175,39 @@ class Crawler:
 			retweet = itemFooter.select_one(".ProfileTweet-action--retweet").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
 			favorite = itemFooter.select_one(".ProfileTweet-action--favorite").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
 			
-			# print reply
-			# print retweet
-			# print favorite
 			file_obj.write(user + " " + timestamp + " " + reply + " " + retweet + " " + favorite)
 			file_obj.write('\n')
 		file_obj.close()		
 
-	# def getTweet(): 
+	def getTweet(self): 
+		return
 
+	def getFollowing(self):
+		url = "https://twitter.com/" + self.currentUser + "/following"
+		
+		try:
+			request = urllib2.Request(url, headers = self.headers)
+			response = urllib2.urlopen(request)
+			pageHtml = response.read()
+
+		except urllib2.URLError, e:
+			if hasattr(e,"reason"):
+				print e.reason
+			return
+
+		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
+
+	def getFollowers(self):
+		return
+
+	def getFavorite(self):
+		return 
 
 	def crawlerFinish(self):
 		self.db.close()
 
 spider = Crawler()
 
-# def get_info():
-#     xuhao=[]
-#     project_name=[]
-#     project_strict=[]
-#     project_sale_num=[]
-#     project_order_num=[]
-#     project_sale_area=[]
-#     project_ave_price=[]
-
-#     baseurl='http://hz.house.ifeng.com/detail/2014_10_28/50087618_'
-
-#     page_num=1
-#     url=baseurl+str(page_num)+'.shtml'
-#     response=requests.get(url)
-#     response.encoding = 'utf-8' #将requests强制编码为utf_8
-#     # print response.encoding   查看requests的编码方式
-
-#     soup=BeautifulSoup(response.text,'lxml')
-#     arcicle=soup.find('div',{'class':'article'})
-#     tr=arcicle.find_all('tr')
-#     for i in range(2,len(tr)-1):
-#         td=tr[i].find_all('td')
-
-#         xuhao.append(td[0].string.strip())
-#         project_name.append(td[1].string.strip())
-#         project_strict.append(td[2].string.strip())
-#         project_sale_num.append(td[3].string.strip())
-#         project_order_num.append(td[4].string.strip())
-#         project_sale_area.append(td[5].string.replace('㎡','').strip())
-#         project_ave_price.append(td[6].string.strip())
-
-#     df=DataFrame(xuhao,columns=['xuhao'])
-#     df['name']=DataFrame(project_name)
-#     df['strict']=DataFrame(project_strict)
-#     df['sale_num']=DataFrame(project_sale_num)
-#     df['order_num']=DataFrame(project_order_num)
-#     df['area']=DataFrame(project_sale_area)
-#     df['ave_price']=DataFrame(project_ave_price)
-#     return df
 
 
 # if __name__=='__main__':
