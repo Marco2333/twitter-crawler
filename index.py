@@ -6,11 +6,13 @@ import config
 import time
 import Queue
 import cookielib
+import random
+import re
 from bs4 import BeautifulSoup
-
+from pybloom import BloomFilter
 
 class Crawler:
-	def __init__(self):
+	def __init__(self):	
 
 		#获取一个保存cookie的对象
 		cj = cookielib.LWPCookieJar()
@@ -25,7 +27,16 @@ class Crawler:
 			'User-Agent':config.USER_AGENT,
 			'referer':'https://twitter.com/login'
 		}   
-
+		self.headers = [{
+			'User-Agent':config.USER_AGENT,
+			'referer':'https://twitter.com'
+		}, {
+			'User-Agent':config.USER_AGENT,
+			'referer':'https://twitter.com/login'
+		}, {
+			'User-Agent':config.USER_AGENT,
+			'referer':'https://twitter.com/mrmarcohan'
+		}]
 		request = urllib2.Request("https://twitter.com/login", headers = headers)
 		response = urllib2.urlopen(request)
 		pageHtml = response.read()
@@ -49,9 +60,9 @@ class Crawler:
 		res = urllib2.urlopen(req)
 		page = res.read()
 
-		request = urllib2.Request("https://twitter.com/taylorswift13/following", headers = headers)
-		response = urllib2.urlopen(request)
-		pageHtml = response.read()
+		# request = urllib2.Request("https://twitter.com/taylorswift13/following", headers = headers)
+		# response = urllib2.urlopen(request)
+		# pageHtml = response.read()
 		
 		# file_obj = open('a.html','w')
 		# file_obj.write(pageHtml)
@@ -66,8 +77,7 @@ class Crawler:
 		# 		# print item.value
 		# return
 
-		self.urlList = Queue.Queue()
-		self.urlList.put(config.INITIAL_USER)
+		self.urlList = [config.INITIAL_USER]
 		# self.months = dict(January = 1, February = 2, March = 3, \
 		# 		April = 4, May = 5, June = 6, July = 7, August = 8, \
 		# 		September = 9, October = 10, November = 11, December = 12)
@@ -80,30 +90,46 @@ class Crawler:
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db
+		self.bf = BloomFilter(capacity=1000000, error_rate=0.001)
+		self.bf.add(config.INITIAL_USER)
 		self.getUsersInfo()
 
 	def getUsersInfo(self):
-		user = self.urlList.get()
-		url = "https://twitter.com/" + user
-		print url
-
-		self.currentUser = user
-		if self.getBasicInfo() != -1:
-			self.getFollowing()
-			self.getFollowers()
+		urlList = self.urlList
+		count = 0
+		print "starting..."
+		while len(urlList) > 0:
+			count = count + 1
+			if count % 3000 == 0:
+				print count
+				print "sleeping..."
+				time.sleep(1000 + randint(200,1000))
+			user = urlList.pop()
+			url = "https://twitter.com/" + user
+			print url
+			self.currentUser = user
+			time.sleep(2 + random.uniform(1, 3))
+			if self.getBasicInfo() != -1:
+				time.sleep(2 + random.uniform(1, 3))
+				self.getFollowing()
+				# time.sleep(1 + random.uniform(1, 3))
+				# self.getFollowers()
 
 	def getBasicInfo(self):
 		url = "https://twitter.com/" + self.currentUser
 
 		try:
-			request = urllib2.Request(url, headers = self.headers)
-			response = urllib2.urlopen(request)
+			request = urllib2.Request(url, headers = self.headers[0])
+			response = urllib2.urlopen(request, timeout = 6)
 			pageHtml = response.read()
+			# file_obj = open('a.html','w')
+			# file_obj.write(pageHtml)
+			# file_obj.close()
 
 		except urllib2.URLError, e:
 			if hasattr(e,"reason"):
 				print e.reason
-			return
+			return -1
 
 		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
 
@@ -112,9 +138,14 @@ class Crawler:
 		bio = soup.select_one(".ProfileHeaderCard-bio").text
 		jd = soup.select_one(".ProfileHeaderCard-joinDateText")['title']
 		location = soup.select_one(".ProfileHeaderCard-locationText").text
-		jd = jd.encode("utf-8")
-		jdlist = jd.split(' ')
-		joindate = jdlist[5] + "-" + self.months[jdlist[4]] + "-" + jdlist[3]
+		try:
+			jd = jd.split(' ')[2]
+			joindate = re.sub('[^\d]+',"-",jd)
+			joindate = joindate[0 : -1]
+		except:
+			joindate = ""
+
+		# joindate = jdlist[5] + "-" + self.months[jdlist[4]] + "-" + jdlist[3]
 
 		try:
 			tn = soup.select_one(".ProfileNav-item--tweets") \
@@ -123,7 +154,7 @@ class Crawler:
 			if int(tweetNum) < 50:
 				return -1
 		except:
-			return
+			return -1
 		
 		try:
 			fing = soup.select_one(".ProfileNav-item--following") \
@@ -156,25 +187,26 @@ class Crawler:
 		   # 提交到数据库执行
 		   self.db.commit()
 		except:
-		   return
+		   return -1
 
 		tweets = soup.select(".js-stream-item")
 		file_obj = open('tweet/' + self.currentUser + '.txt','a')
 		for i in range(len(tweets)):
-			tt = tweets[i].select_one(".js-tweet-text-container").text.replace(u'\xa0', u' ').replace('\n',' ')
 			try:
+				tt = tweets[i].select_one(".js-tweet-text-container").text.replace(u'\xa0', u' ').replace('\n',' ')
 				file_obj.write(tt.encode('utf-8'))
 				file_obj.write("\n")
 			except:
-				print tt
 				continue
-			timestamp = tweets[i].select_one(".stream-item-header").select_one(".js-short-timestamp")['data-time']
-			user = tweets[i].select_one(".stream-item-header").select_one(".username").select_one('b').text
-			itemFooter =  tweets[i].select_one(".stream-item-footer")
-			reply = itemFooter.select_one(".ProfileTweet-action--reply").select_one(".ProfileTweet-actionCount")['data-tweet-stat-count']
-			retweet = itemFooter.select_one(".ProfileTweet-action--retweet").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
-			favorite = itemFooter.select_one(".ProfileTweet-action--favorite").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
-			
+			try:
+				timestamp = tweets[i].select_one(".stream-item-header").select_one(".js-short-timestamp")['data-time']
+				user = tweets[i].select_one(".stream-item-header").select_one(".username").select_one('b').text
+				itemFooter =  tweets[i].select_one(".stream-item-footer")
+				reply = itemFooter.select_one(".ProfileTweet-action--reply").select_one(".ProfileTweet-actionCount")['data-tweet-stat-count']
+				retweet = itemFooter.select_one(".ProfileTweet-action--retweet").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
+				favorite = itemFooter.select_one(".ProfileTweet-action--favorite").select_one(".ProfileTweet-actionCount ")['data-tweet-stat-count']
+			except:
+				print "tweets bottom error"
 			file_obj.write(user + " " + timestamp + " " + reply + " " + retweet + " " + favorite)
 			file_obj.write('\n')
 		file_obj.close()		
@@ -186,7 +218,34 @@ class Crawler:
 		url = "https://twitter.com/" + self.currentUser + "/following"
 		
 		try:
-			request = urllib2.Request(url, headers = self.headers)
+			request = urllib2.Request(url, headers = self.headers[1])
+			response = urllib2.urlopen(request, timeout = 6)
+			pageHtml = response.read()
+
+		except urllib2.URLError, e:
+			if hasattr(e,"reason"):
+				print e.reason
+			return
+
+		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
+		pcList = soup.select(".ProfileCard")
+		file_obj = open('following/' + self.currentUser + '.txt','a')
+		for i in range(len(pcList)):
+			pc = pcList[i].select_one(".ProfileCard-screennameLink").select_one(".u-linkComplex-target").text.replace(u'\xa0', u' ')
+			if pc not in self.bf:
+				self.bf.add(pc)
+				self.urlList.append(pc)
+			try:
+				file_obj.write(pc + " ")
+			except:
+				print pc
+				continue
+
+	def getFollowers(self):
+		url = "https://twitter.com/" + self.currentUser + "/following"
+		
+		try:
+			request = urllib2.Request(url, headers = self.headers[2])
 			response = urllib2.urlopen(request)
 			pageHtml = response.read()
 
@@ -197,10 +256,23 @@ class Crawler:
 
 		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
 
-	def getFollowers(self):
 		return
 
 	def getFavorite(self):
+		url = "https://twitter.com/" + self.currentUser + "/following"
+		
+		try:
+			request = urllib2.Request(url, headers = self.headers[0])
+			response = urllib2.urlopen(request)
+			pageHtml = response.read()
+
+		except urllib2.URLError, e:
+			if hasattr(e,"reason"):
+				print e.reason
+			return
+
+		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
+
 		return 
 
 	def crawlerFinish(self):
