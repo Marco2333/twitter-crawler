@@ -4,10 +4,10 @@ import urllib2
 import MySQLdb
 import config
 import time
-import Queue
 import cookielib
 import random
 import re
+import socket
 from bs4 import BeautifulSoup
 from pybloom import BloomFilter
 
@@ -60,6 +60,7 @@ class Crawler:
 		res = urllib2.urlopen(req)
 		page = res.read()
 
+		socket.setdefaulttimeout(5)
 		# request = urllib2.Request("https://twitter.com/taylorswift13/following", headers = headers)
 		# response = urllib2.urlopen(request)
 		# pageHtml = response.read()
@@ -92,7 +93,8 @@ class Crawler:
 		self.db = db
 		self.bf = BloomFilter(capacity=1000000, error_rate=0.001)
 		self.bf.add(config.INITIAL_USER)
-		self.getUsersInfo()
+		# self.getUsersInfo()
+		self.restart()
 
 	def getUsersInfo(self):
 		urlList = self.urlList
@@ -108,27 +110,34 @@ class Crawler:
 			url = "https://twitter.com/" + user
 			print url
 			self.currentUser = user
-			time.sleep(2 + random.uniform(1, 3))
-			if self.getBasicInfo() != -1:
-				time.sleep(2 + random.uniform(1, 3))
-				self.getFollowing()
-				# time.sleep(1 + random.uniform(1, 3))
-				# self.getFollowers()
+			time.sleep(1 + random.uniform(1, 4))
+			try:
+				flag = 1
+				flag = self.getBasicInfo()
+				if flag != -1:
+					time.sleep(1 + random.uniform(1, 4))
+					self.getFollowing()
+					# time.sleep(1 + random.uniform(1, 3))
+					# self.getFollowers()
+			except:
+				print "something wrong"
+				continue
+			# if self.getBasicInfo() != -1:
+			# 	time.sleep(2 + random.uniform(1, 3))
+			# 	self.getFollowing()
 
 	def getBasicInfo(self):
 		url = "https://twitter.com/" + self.currentUser
 
 		try:
 			request = urllib2.Request(url, headers = self.headers[0])
-			response = urllib2.urlopen(request, timeout = 6)
+			response = urllib2.urlopen(request, timeout = 5)
 			pageHtml = response.read()
 			# file_obj = open('a.html','w')
 			# file_obj.write(pageHtml)
 			# file_obj.close()
-
-		except urllib2.URLError, e:
-			if hasattr(e,"reason"):
-				print e.reason
+		except:
+			print "basic info 请求超时"
 			return -1
 
 		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
@@ -151,7 +160,7 @@ class Crawler:
 			tn = soup.select_one(".ProfileNav-item--tweets") \
 				.select_one(".ProfileNav-stat--link")['title']
 			tweetNum = tn.split(' ')[0].replace(',','')
-			if int(tweetNum) < 50:
+			if int(tweetNum) < 60:
 				return -1
 		except:
 			return -1
@@ -219,12 +228,10 @@ class Crawler:
 		
 		try:
 			request = urllib2.Request(url, headers = self.headers[1])
-			response = urllib2.urlopen(request, timeout = 6)
+			response = urllib2.urlopen(request, timeout = 5)
 			pageHtml = response.read()
-
-		except urllib2.URLError, e:
-			if hasattr(e,"reason"):
-				print e.reason
+		except:
+			print "following 请求超时"
 			return
 
 		soup = BeautifulSoup(pageHtml, 'html.parser', from_encoding="unicode")
@@ -246,7 +253,7 @@ class Crawler:
 		
 		try:
 			request = urllib2.Request(url, headers = self.headers[2])
-			response = urllib2.urlopen(request)
+			response = urllib2.urlopen(request, timeout = 5)
 			pageHtml = response.read()
 
 		except urllib2.URLError, e:
@@ -263,7 +270,7 @@ class Crawler:
 		
 		try:
 			request = urllib2.Request(url, headers = self.headers[0])
-			response = urllib2.urlopen(request)
+			response = urllib2.urlopen(request, timeout = 5)
 			pageHtml = response.read()
 
 		except urllib2.URLError, e:
@@ -277,6 +284,19 @@ class Crawler:
 
 	def crawlerFinish(self):
 		self.db.close()
+
+	def restart(self):
+		sql = "select screenname from user" 
+		try:
+			# 执行sql语句
+			self.cursor.execute(sql)
+			info = curself.cursor.fetchall()
+			for ii in info:
+			    print ii[0]
+			    self.bf.add(ii[0])
+		except:
+		   return -1
+		self.getUsersInfo()
 
 spider = Crawler()
 
