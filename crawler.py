@@ -105,7 +105,7 @@ class Crawler:
 			if count % 3000 == 0:
 				print count
 				print "sleeping..."
-				time.sleep(1000 + randint(200,1000))
+				time.sleep(400 + random.randint(200,1000))
 			user = urlList.pop()
 			url = "https://twitter.com/" + user
 			print url
@@ -114,6 +114,7 @@ class Crawler:
 			try:
 				flag = 1
 				flag = self.getBasicInfo()
+				# print flag
 				if flag != -1:
 					time.sleep(1 + random.uniform(1, 4))
 					self.getFollowing()
@@ -290,12 +291,11 @@ class Crawler:
 		try:
 			# 执行sql语句
 			self.cursor.execute(sql)
-			info = curself.cursor.fetchall()
+			info = self.cursor.fetchall()
 			for ii in info:
-			    print ii[0]
-			    self.bf.add(ii[0])
+				self.bf.add(ii[0])
 		except:
-		   return -1
+			return -1
 		self.getUsersInfo()
 
 spider = Crawler()
@@ -304,5 +304,5 @@ spider = Crawler()
 
 # if __name__=='__main__':
 
-#     page=get_info()
+#	 page=get_info()
 #     print page
