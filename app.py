@@ -1,6 +1,7 @@
 import twitter
 import config
 import MySQLdb
+from pybloom import BloomFilter
 
 # import tweepy
 # auth = tweepy.OAuthHandler('bRJ4nxfQ1lQpc0b9OiGyznwTP', 'duDNQlvxtYInexf8kBiSTUwAuaskty4iGd6HnPKfoWzLoSvJgc')
@@ -20,8 +21,35 @@ class Crawler:
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db
+
+		self.bf = BloomFilter(capacity=1000000, error_rate=0.001)
+		self.urlList = [config.INITIAL_USER]
+		self.bf.add(config.INITIAL_USER)
 		# self.getAllUsersTweets()
-		self.getFollowing('mrmarcohan')
+		# self.getFollowing('mrmarcohan')
+
+	def getAllUsersInfo(self):
+		urlList = self.urlList
+		print "starting..."
+		while len(urlList) > 0:
+			user = urlList.pop()
+			print "processing: " + user + "..."
+			self.currentUser = user
+			try:
+				flag = 1
+				flag = self.getBasicInfo()
+				# print flag
+				if flag != -1:
+					time.sleep(1 + random.uniform(1, 4))
+					self.getFollowing()
+					# time.sleep(1 + random.uniform(1, 3))
+					# self.getFollowers()
+			except:
+				print "something wrong"
+				continue
+			# if self.getBasicInfo() != -1:
+			# 	time.sleep(2 + random.uniform(1, 3))
+			# 	self.getFollowing()
 
 	def getAllUsersTweets(self):
 		sql = "select screenname from user" 
@@ -83,7 +111,7 @@ class Crawler:
 
 		file_obj.close()
 
-	def getFollowing(self, screen_name):
+	def getUserFollowing(self, screen_name):
 		api = self.api
 		file_obj = open('following123/' + screen_name + '.txt','w')
 		cursor = -1
@@ -99,7 +127,7 @@ class Crawler:
 		file_obj.close()	
 	
 		
-	def getFollowers(self, screen_name):
+	def getUserFollowers(self, screen_name):
 		api = self.api
 		file_obj = open('followers/' + screen_name + '.txt','w')
 		cursor = -1
@@ -116,6 +144,16 @@ class Crawler:
 
 
 	def restart(self):
+		sql = "select screenname from user" 
+		try:
+			# 执行sql语句
+			self.cursor.execute(sql)
+			info = self.cursor.fetchall()
+			for ii in info:
+				self.bf.add(ii[0])
+		except:
+			return -1
+		
 		return
 
 		
