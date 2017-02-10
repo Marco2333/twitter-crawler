@@ -1,7 +1,6 @@
 import twitter
 import config
 import MySQLdb
-from pybloom import BloomFilter
 
 # import tweepy
 # auth = tweepy.OAuthHandler('bRJ4nxfQ1lQpc0b9OiGyznwTP', 'duDNQlvxtYInexf8kBiSTUwAuaskty4iGd6HnPKfoWzLoSvJgc')
@@ -13,43 +12,46 @@ from pybloom import BloomFilter
 
 class Crawler:
 	def __init__(self):
-		self.api = twitter.Api(consumer_key='bRJ4nxfQ1lQpc0b9OiGyznwTP',
-	                      consumer_secret='duDNQlvxtYInexf8kBiSTUwAuaskty4iGd6HnPKfoWzLoSvJgc',
-	                      access_token_key='716652054446379008-4wz9tWCPDUa61FglUqrhk58zmJmtnP2',
-	                      access_token_secret='hNFCesJ2rADFcmIljjEmywxGcDc6HrV6ORGZqrqNDWLXF')
+		api = []
+		for i in range(11):
+			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
+		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
+		                      access_token_key=config.APP_INFO[i]['access_token_key'],
+		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
+
+		self.api = api
+		self.apiIndex = 0
+
 		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db
-
-		self.bf = BloomFilter(capacity=1000000, error_rate=0.001)
-		self.urlList = [config.INITIAL_USER]
-		self.bf.add(config.INITIAL_USER)
 		# self.getAllUsersTweets()
-		# self.getFollowing('mrmarcohan')
+		self.getAllUsersRelation()
+		# self.getFollowing('01secondstv')
+		# out = self.api.GetFriendIDsPaged(screen_name = "mrmarcohan", cursor = -1, count = 100)
+		# print out
 
-	def getAllUsersInfo(self):
-		urlList = self.urlList
-		print "starting..."
-		while len(urlList) > 0:
-			user = urlList.pop()
-			print "processing: " + user + "..."
-			self.currentUser = user
+	def getAllUsersRelation(self):
+		sql = "select screenname, fansNum, watchNum from user" 
+		try:
+			self.cursor.execute(sql)
+			info = self.cursor.fetchall()
+		except:
+			return -1
+
+		for ii in info:
 			try:
-				flag = 1
-				flag = self.getBasicInfo()
-				# print flag
-				if flag != -1:
-					time.sleep(1 + random.uniform(1, 4))
-					self.getFollowing()
-					# time.sleep(1 + random.uniform(1, 3))
-					# self.getFollowers()
-			except:
-				print "something wrong"
+				if ii[2] < 50000:
+					self.getFollowing(ii[0])
+				if ii[1] < 100000:
+					self.getFollowers(ii[0])
+				print ii[0] + " finished..."
+			except Exception as e:
+				print ii[0] + " failed"
+				print e
 				continue
-			# if self.getBasicInfo() != -1:
-			# 	time.sleep(2 + random.uniform(1, 3))
-			# 	self.getFollowing()
+			# return
 
 	def getAllUsersTweets(self):
 		sql = "select screenname from user" 
@@ -111,33 +113,35 @@ class Crawler:
 
 		file_obj.close()
 
-	def getUserFollowing(self, screen_name):
-		api = self.api
-		file_obj = open('following123/' + screen_name + '.txt','w')
+	def getFollowing(self, screen_name):
+		file_obj = open('following/' + screen_name + '.txt','w')
 		cursor = -1
 
 		while cursor != 0:
-			out = api.GetFriendIDsPaged(screen_name = screen_name, cursor = cursor, count = 100)
+			api = self.api[self.apiIndex]
+			self.apiIndex = (self.apiIndex + 1) % 11
+			out = api.GetFriendIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
 			cursor = out[0]
 			friend_list = out[2]
 			for fl in friend_list:
-				file_obj.write(fl + " ")
+				file_obj.write(str(fl) + " ")
 			file_obj.write("\n")
 
 		file_obj.close()	
 	
 		
-	def getUserFollowers(self, screen_name):
-		api = self.api
+	def getFollowers(self, screen_name):
 		file_obj = open('followers/' + screen_name + '.txt','w')
 		cursor = -1
 		
 		while cursor != 0:
-			out = api.GetFollowerIDsPaged(screen_name = screen_name, cursor = cursor, count = 100)
+			api = self.api[self.apiIndex]
+			self.apiIndex = (self.apiIndex + 1) % 11
+			out = api.GetFollowerIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
 			cursor = out[0]
 			friend_list = out[2]
 			for fl in friend_list:
-				file_obj.write(fl + " ")
+				file_obj.write(str(fl) + " ")
 			file_obj.write("\n")
 
 		file_obj.close()	
