@@ -1,6 +1,7 @@
 import twitter
 import config
 import MySQLdb
+import time
 
 # import tweepy
 # auth = tweepy.OAuthHandler('bRJ4nxfQ1lQpc0b9OiGyznwTP', 'duDNQlvxtYInexf8kBiSTUwAuaskty4iGd6HnPKfoWzLoSvJgc')
@@ -13,7 +14,8 @@ import MySQLdb
 class Crawler:
 	def __init__(self):
 		api = []
-		for i in range(11):
+		self.apiCount = 17
+		for i in range(self.apiCount):
 			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
@@ -40,7 +42,11 @@ class Crawler:
 		except:
 			return -1
 
-		for ii in info:
+		length = len(info) - 1
+
+		while length >= 0:
+			ii = info[length]
+			length = length - 1
 			try:
 				if ii[2] < 50000:
 					self.getFollowing(ii[0])
@@ -49,9 +55,17 @@ class Crawler:
 				print ii[0] + " finished..."
 			except Exception as e:
 				print ii[0] + " failed"
-				print e
+				
+				if hasattr(e,"message"):
+					print e.message
+					try:
+						if e.message[0]['code'] == 88:
+							length = length + 1
+							print "sleeping..."
+							time.sleep(300)
+					except:
+						continue
 				continue
-			# return
 
 	def getAllUsersTweets(self):
 		sql = "select screenname from user" 
@@ -119,7 +133,7 @@ class Crawler:
 
 		while cursor != 0:
 			api = self.api[self.apiIndex]
-			self.apiIndex = (self.apiIndex + 1) % 11
+			self.apiIndex = (self.apiIndex + 1) % self.apiCount
 			out = api.GetFriendIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
 			cursor = out[0]
 			friend_list = out[2]
@@ -136,7 +150,7 @@ class Crawler:
 		
 		while cursor != 0:
 			api = self.api[self.apiIndex]
-			self.apiIndex = (self.apiIndex + 1) % 11
+			self.apiIndex = (self.apiIndex + 1) % self.apiCount
 			out = api.GetFollowerIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
 			cursor = out[0]
 			friend_list = out[2]
@@ -150,7 +164,6 @@ class Crawler:
 	def restart(self):
 		sql = "select screenname from user" 
 		try:
-			# 执行sql语句
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()
 			for ii in info:
