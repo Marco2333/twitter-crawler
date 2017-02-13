@@ -2,6 +2,7 @@ import twitter
 import config
 import MySQLdb
 import time
+from pybloom import BloomFilter
 
 # import tweepy
 # auth = tweepy.OAuthHandler('bRJ4nxfQ1lQpc0b9OiGyznwTP', 'duDNQlvxtYInexf8kBiSTUwAuaskty4iGd6HnPKfoWzLoSvJgc')
@@ -14,8 +15,8 @@ import time
 class Crawler:
 	def __init__(self):
 		api = []
-		self.apiCount = 17
-		for i in range(self.apiCount):
+		self.apiCount = 9
+		for i in range(17, 26):
 			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
@@ -28,11 +29,74 @@ class Crawler:
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db
+		self.bf = BloomFilter(capacity = 5000000, error_rate = 0.001)
+		self.bf.add(config.INITIAL_USER)
+		self.userList = [config.INITIAL_USER]
 		# self.getAllUsersTweets()
-		self.getAllUsersRelation()
+		# self.getAllUsersRelation()
 		# self.getFollowing('01secondstv')
-		# out = self.api.GetFriendIDsPaged(screen_name = "mrmarcohan", cursor = -1, count = 100)
-		# print out
+		# a = api[5].GetUser(screen_name = 'kobebryant')
+		# print a 
+		# return
+		# while True:
+		# 	n = n + 1
+		# 	try:
+		# 		print n
+		# 		tweets = api.GetUserTimeline(screen_name = 'mrmarcohan', count = 2)
+		# 		for tt in tweets:
+		# 			print tt
+		# 		# friends = api.GetFriendsPaged(screen_name = 'mrmarcohan', cursor = -1, count = 1)
+		# 		# print friends
+		# 	except Exception as e:
+		# 		print e
+		# 		print n
+		# 		return
+		self.restart()
+		self.getUsersIDByFollowing()
+		# self.getFollowing('mrmarcohan')
+
+	def getUsersIDByFollowing(self):
+		print "starting..."
+		sleep_count = 0
+		count = 0
+		sql = "INSERT INTO user_1(userid) VALUES ('"
+		while True:
+			count = count + 1
+			if count > 5000000:
+				return
+
+			user_id = self.userList.pop()
+			api = self.api[self.apiIndex]
+			self.apiIndex = (self.apiIndex + 1) % self.apiCount
+			try:
+				out = api.GetFriendIDsPaged(user_id = user_id, cursor = -1, count = 5000)
+			except Exception as e:
+				print e
+				if hasattr(e,"message"):
+					print e.message
+					try:
+						if e.message[0]['code'] == 88:
+							sleep_count = sleep_count + 1
+							if sleep_count == self.apiCount:
+								print "sleeping..."
+								time.sleep(900)
+								sleep_count = 0
+							continue
+					except Exception as e1:
+						print e1
+						continue
+				continue
+
+			for id in out[2]:
+				if id not in self.bf:
+					self.bf.add(id)
+					self.userList.append(id)
+					try:
+						self.cursor.execute(sql + str(id) + "')")
+						self.db.commit()
+					except Exception as e:
+						print e
+
 
 	def getAllUsersRelation(self):
 		sql = "select screenname, fansNum, watchNum from user" 
@@ -132,13 +196,14 @@ class Crawler:
 		cursor = -1
 
 		while cursor != 0:
-			api = self.api[self.apiIndex]
-			self.apiIndex = (self.apiIndex + 1) % self.apiCount
-			out = api.GetFriendIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
+			api = self.api[25]
+			# self.apiIndex = (self.apiIndex + 1) % self.apiCount
+			out = api.GetFriendIDsPaged(screen_name = screen_name, cursor = cursor, count = 1)
 			cursor = out[0]
 			friend_list = out[2]
 			for fl in friend_list:
-				file_obj.write(str(fl) + " ")
+				# file_obj.write(str(fl) + " ")
+				print fl
 			file_obj.write("\n")
 
 		file_obj.close()	
@@ -162,7 +227,7 @@ class Crawler:
 
 
 	def restart(self):
-		sql = "select screenname from user" 
+		sql = "select userid from user" 
 		try:
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()
