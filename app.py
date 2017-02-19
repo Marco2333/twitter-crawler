@@ -3,6 +3,10 @@ import config
 import MySQLdb
 import time
 
+
+
+log_obj = None
+
 class Crawler:
 	def __init__(self):
 		api = []
@@ -131,5 +135,8 @@ class Crawler:
 		
 		return
 
-		
+
+
+
+
 spider = Crawler()
