@@ -95,3 +95,7 @@ text: The actual UTF-8 text of the status update.
 
 
 #log
+
+http://www.jb51.net/article/23781.htm
+mysql> set global max_allowed_packet=1024*1024*16;
+mysql> show global variables like 'max_allowed_packet';

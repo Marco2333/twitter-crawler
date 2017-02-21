@@ -49,7 +49,7 @@ class Crawler:
 		threadPool = []
 		while True:
 			while i < threadNum:
-				crawThread = ThreadCrawler(info.pop(0)[0], .api[index])
+				crawThread = ThreadCrawler(info.pop(0)[0], api[index])
 				crawThread.start()
 				treadPool.append(crawThread)
 				index = (index + 1) % apiCount
@@ -131,6 +131,13 @@ class ThreadCrawler(threading.Thread):
 					continue
 
 		file_obj.close()
+		
+		description = user.description.replace("'","\\'") if user.description else ''
+		protected = 1 if user.protected else 0
+		verified = 1 if user.verified else 0
+		geo_enabled = 1 if user.geo_enabled else 0
+		default_profile_image = 1 if user.default_profile_image else 0 
+
 		
 
 if __name__ == "__main__":
