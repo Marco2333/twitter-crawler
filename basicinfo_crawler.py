@@ -1,48 +1,50 @@
+import time
 import twitter
 import config
-# import MySQLdb
-import time
+import MySQLdb
 import threading
+
+db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
+db.set_character_set('utf8')
+# db.ping(True)
+cursor = db.cursor()
 
 
 class Crawler:
 	def __init__(self):
 		api = []
-		for i in range(35):
+		self.apiCount = 58
+		for i in range(58):
 			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
 		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
 
-		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
-		cursor = db.cursor()
-		self.cursor = cursor
-		self.db = db
 		self.api = api
 
 
 	def user_scan(self):
 		i = 0
-		index = 0
+		total = 4000000
+		id_count = 2000000
 		threadPool = []
 		threadNum = config.THREAD_NUM
+		per_thread = id_count / threadNum
 
-		while i < 1000000:
-			while i < threadNum:
-				crawThread = ThreadCrawler(i, api[index])
-				crawThread.start()
-				treadPool.append(crawThread)
-				index = (index + 1) % apiCount
-				i = i + 1
+		while i < threadNum:
+			if i + 1 == threadNum:
+				crawThread = ThreadCrawler(i * per_thread + 2000001, total, self.api)
+			else:
+				crawThread = ThreadCrawler(i * per_thread + 2000001, (i + 1) * per_thread + 2000000, self.api)
+			crawThread.start()
+			threadPool.append(crawThread)
+			i = i + 1
 
-			for thread in threadPool:
-				thread.join()
-
-			threadPool = []
-
+		for thread in threadPool:
+			thread.join()
 
 	def restart(self):
-		sql = "select userid from user" 
+		sql = "select user_id from user" 
 		try:
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()
@@ -55,50 +57,79 @@ class Crawler:
 
 
 class ThreadCrawler(threading.Thread):
-	def  __init__(self, user_id, api):
+	def  __init__(self, lower_bound, upper_bound, api):
 		threading.Thread.__init__(self)
-		self.user_id = user_id
+		self.lower_bound = lower_bound
+		self.upper_bound = upper_bound
 		self.api = api
+		
 
 	def run(self):
-		try:
-			user = self.api.GetUser(user_id = self.user_id)
-		except Exception as e:
-			print e
-			if hasattr(e, "message"):
-					print e.message
+		user_id = self.lower_bound - 1
+		upper_bound = self.upper_bound
+		apis = self.api
+		api_count = 58
+		api_index = 0
+
+		# global db
+		# global cursor
+
+		while user_id < upper_bound:
+			print str(user_id) + " ..."
+			db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
+			db.set_character_set('utf8')
+			cursor = db.cursor()
+			try:
+				user_id = user_id + 1
+				api_index = (api_index + 1) % api_count
+				user = apis[api_index].GetUser(user_id = user_id)
+
+			except Exception as e:
+				if hasattr(e, "message"):
 					try:
 						if e.message[0]['code'] == 88:
-								print "sleeping..."
-								time.sleep(100)
+							print "sleeping..."
+							time.sleep(60)
+							user_id = user_id - 1
+							continue
+						elif e.message[0]['code'] != 50:
+							print e
 							continue
 					except Exception as e2:
 						print e2
-						return
-				return
+						continue
+				else:
+					print e
+				continue
 
-		protected = 1 if user.protected else 0 
-		verified = 1 if user.verified else 0 
-		geo_enabled = 1 if user.geo_enabled else 0 
-		is_translator = 1 if user.is_translator else 0 
-		default_profile_image = 1 if user.default_profile_image else 0 
+			is_translator = 0
+			if hasattr(user, "is_translator"):
+				is_translator = 1 if user.is_translator else 0
 
-		sql = """INSERT INTO user_1(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
-				followers_count, favourites_count, lang, protected, time_zone, verified, utc_offset, geo_enabled, listed_count,
-				is_translator, default_profile_image, profile_background_color, profile_sidebar_fill_color, crawler_date) VALUES 
-				('%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%d', '%s', '%d', '%d', '%d', '%d', '%d', '%d', 
-				'%s', '%s', '%s')""" % (user_id, user.screen_name, user.name, user.location, user.created_at, user.description, user.statuses_count, \
-				user.friends_count, user.followers_count, user.favourites_count, user.lang, protected, user.time_zone, verified, \
-				user.utc_offset, geo_enabled, user.listed_count, is_translator, default_profile_image, user.profile_background_color, \
-				user.profile_sidebar_fill_color, time.strftime('%Y-%m-%d',time.localtime(time.time()))) 
+			description = user.description.replace("'","\\'") if user.description else ''
+			protected = 1 if user.protected else 0
+			verified = 1 if user.verified else 0
+			geo_enabled = 1 if user.geo_enabled else 0
+			listed_count = user.listed_count if user.listed_count else 0
+			default_profile_image = 1 if user.default_profile_image else 0 
 
-		try:
-			# 执行sql语句
-			self.cursor.execute(sql)
-			# 提交到数据库执行
-			self.db.commit()
-		except:
-		   return -1
+			sql = """INSERT INTO user_2(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
+					followers_count, favourites_count, lang, protected, time_zone, verified, utc_offset, geo_enabled, listed_count,
+					is_translator, default_profile_image, profile_background_color, profile_sidebar_fill_color, profile_image_url, crawler_date) VALUES
+					('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, '%s', %d, '%s', %d, '%s', %d, %d, %d, %d,
+					'%s', '%s', '%s', '%s')""" % (user_id, user.screen_name, user.name, user.location, user.created_at, description, user.statuses_count, \
+					user.friends_count, user.followers_count, user.favourites_count, user.lang, protected, user.time_zone, verified, \
+					user.utc_offset, geo_enabled, listed_count, is_translator, default_profile_image, user.profile_background_color, \
+					user.profile_sidebar_fill_color, user.profile_image_url, time.strftime('%Y-%m-%d',time.localtime(time.time()))) 
+
+			try:
+				cursor.execute(sql)
+				db.commit()
+			except Exception as e:
+				print e
+				continue
+			db.close()
+			
 
 if __name__ == "__main__":
 	crawler = Crawler()

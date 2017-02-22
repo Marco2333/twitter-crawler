@@ -3,11 +3,11 @@ import config
 import MySQLdb
 import time
 
-class Crawler:
+class RelationshipCrawler:
 	def __init__(self):
 		api = []
-		self.apiCount = 26
-		for i in range(26):
+		self.apiCount = 50
+		for i in range(50):
 			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
@@ -26,7 +26,7 @@ class Crawler:
 
 
 	def getAllUsersRelation(self):
-		sql = "select screenname, fansNum, watchNum from user_1_1" 
+		sql = "select userid, friends_count, followers_count from user" 
 		try:
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()
@@ -37,9 +37,9 @@ class Crawler:
 			if ii[0] == '':
 				continue
 			try:
-				if ii[2] < 50000:
-					self.getFollowing(ii[0])
-				if ii[1] < 100000:
+				# if ii[1] < 50000:
+				# 	self.getFollowing(ii[0])
+				if ii[2] < 100000:
 					self.getFollowers(ii[0])
 				print ii[0] + " finished..."
 			except Exception as e:
@@ -48,8 +48,16 @@ class Crawler:
 				continue
 
 
-	def getFollowing(self, screen_name):
-		file_obj = open('following/' + screen_name + '.txt','w')
+	def getFollowing(self, user_id):
+		if len(user_id) <= 4:
+			file_obj = open('following/other.txt','a')
+			file_obj.write(":" + user_id)
+			file_obj.write("\n")
+		else:
+			file_obj = open('following/' + user_id[0:4] + '.txt','a')
+			file_obj.write(":" + user_id[4:])
+			file_obj.write("\n")
+
 		cursor = -1
 
 		while cursor != 0:
@@ -57,7 +65,7 @@ class Crawler:
 			self.apiIndex = (self.apiIndex + 1) % self.apiCount
 			
 			try:
-				out = api.GetFriendIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
+				out = api.GetFriendIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
 				cursor = out[0]
 				friend_list = out[2]
 				for fl in friend_list:
@@ -76,15 +84,27 @@ class Crawler:
 							continue
 					except Exception as e2:
 						print e2
+						file_obj.write("\n")
+						file_obj.close()	
 						return
+				file_obj.write("\n")
+				file_obj.close()			
 				return
-			file_obj.write("\n")
 
+		file_obj.write("\n")
 		file_obj.close()	
 	
 		
-	def getFollowers(self, screen_name):
-		file_obj = open('followers/' + screen_name + '.txt','w')
+	def getFollowers(self, user_id):
+		if len(user_id) <= 4:
+			file_obj = open('followers/other.txt','a')
+			file_obj.write(":" + user_id)
+			file_obj.write("\n")
+		else:
+			file_obj = open('followers/' + user_id[0:4] + '.txt','a')
+			file_obj.write(":" + user_id[4:])
+			file_obj.write("\n")
+		
 		cursor = -1
 		
 		while cursor != 0:
@@ -92,13 +112,14 @@ class Crawler:
 			self.apiIndex = (self.apiIndex + 1) % self.apiCount
 
 			try:
-				out = api.GetFollowerIDsPaged(screen_name = screen_name, cursor = cursor, count = 5000)
+				out = api.GetFollowerIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
 				cursor = out[0]
 				friend_list = out[2]
 				for fl in friend_list:
 					file_obj.write(str(fl) + " ")
 			except Exception as e: 
 				print e
+				print user_id
 				if hasattr(e,"message"):
 					print e.message
 					try:
@@ -111,11 +132,14 @@ class Crawler:
 							continue
 					except Exception as e2:
 						print e2
+						file_obj.write("\n")
+						file_obj.close()	
 						return
+				file_obj.write("\n")
+				file_obj.close()	
 				return
 
-			file_obj.write("\n")
-
+		file_obj.write("\n")
 		file_obj.close()	
 
 
@@ -132,4 +156,4 @@ class Crawler:
 		return
 
 		
-spider = Crawler()
+spider = RelationshipCrawler()

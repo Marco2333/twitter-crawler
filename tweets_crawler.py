@@ -1,6 +1,6 @@
 import twitter
 import config
-# import MySQLdb
+import MySQLdb
 import time
 import threading
 
@@ -143,4 +143,3 @@ class ThreadCrawler(threading.Thread):
 if __name__ == "__main__":
 	crawler = Crawler()
 	crawler.get_all_user_tweets()
-
