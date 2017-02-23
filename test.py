@@ -27,20 +27,24 @@ class Crawler:
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
 		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
-		# for i in range(6000002, 6000010):
-		# 	try:
-		# 		info = api[2].GetUser(user_id = i)
-		# 		print (info.id, info.screen_name)
-		# 	except Exception as e:
-		# 		print e
-		# 		continue
-		# return
+
 		client = MongoClient('127.0.0.1', 27017)
 		db_name = 'twitter'
 		db = client[db_name]
-		table = db['tweet']
-		print table
-		print 123
+		collect = db['tweet']
+		tweets = api[0].GetUserTimeline(screen_name = 'officialslim400', max_id = 0, count = 200)
+		
+		print tweets[0]
+		for tt in tweets
+			tweet = {
+				'created_at': tt.created_at,
+
+
+			}
+			collect.insert_one(tts)
+			return
+		return
+
 
 		# a = api[0].GetUser(user_id = 59)
 		# print a
@@ -52,9 +56,7 @@ class Crawler:
 		print a[0:]
 		print a[1:3]
 		
-		u = api[0].GetUser(screen_name = 'to_mkl')
-		print u
-		return
+		
 		tweets = api[0].GetUserTimeline(screen_name = 'to_mkl', max_id = 0, count = 2)
 		print tweets
 		return
