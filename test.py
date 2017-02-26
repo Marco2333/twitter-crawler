@@ -38,7 +38,7 @@ class Crawler:
 		for tt in tweets
 			tweet = {
 				'created_at': tt.created_at,
-
+				
 
 			}
 			collect.insert_one(tts)
