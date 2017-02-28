@@ -157,7 +157,6 @@ class ThreadCrawler(threading.Thread):
 			db.close()
 
 
-
 # class ThreadCrawler(threading.Thread):
 # 	def  __init__(self, lower_bound, upper_bound, api):
 # 		threading.Thread.__init__(self)

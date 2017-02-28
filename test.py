@@ -1,13 +1,16 @@
 import twitter
 import config
-import MySQLdb
+# import MySQLdb
 import time
-from pymongo import MongoClient
+# from pymongo import MongoClient
 
 
 class Crawler:
 	def __init__(self):
 
+		a = [1,2,3]
+		print a[0:10000]
+		return
 		# print db.tweet
 		# print db.collection_names()
 		# for u in db.tweet.find():
@@ -34,16 +37,7 @@ class Crawler:
 		collect = db['tweet']
 		tweets = api[0].GetUserTimeline(screen_name = 'officialslim400', max_id = 0, count = 200)
 		
-		print tweets[0]
-		for tt in tweets
-			tweet = {
-				'created_at': tt.created_at,
-				
-
-			}
-			collect.insert_one(tts)
-			return
-		return
+		
 
 
 		# a = api[0].GetUser(user_id = 59)
