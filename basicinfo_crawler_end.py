@@ -8,8 +8,9 @@ from pybloom import BloomFilter
 api_count = 58
 api_list = []
 user_list = []
+extend_list = []
 lock = threading.Lock()
-bloom_filter = BloomFilter(capacity = 53000000, error_rate = 0.001)
+bloom_filter = BloomFilter(capacity = 33000000, error_rate = 0.001)
 
 class Crawler:
 	def __init__(self):
@@ -27,7 +28,8 @@ class Crawler:
 		threadPool = []
 		threadNum = config.THREAD_NUM
 
-		self.extend_root_user(root_users[0 : 500])
+		self.reload_users()
+		self.extend_root_user(root_users[0 : 300])
 		extendThread = ThreadExtend()
 		extendThread.start()
 		threadPool.append(extendThread)
@@ -47,24 +49,28 @@ class Crawler:
 
 	def reload_users(self):
 		global bloom_filter
+		print "reloading..."
 
 		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 		db.set_character_set('utf8')
 		cursor = db.cursor()
 
-		for table_name in ['user_1', 'user_all', 'user_other']:
+		# for table_name in ['user_famous']:
+		for table_name in ['user', 'user_1', 'user_all', 'user_bfs_relation', 'user_famous', 'user_random_3000']:
 			sql = "select user_id from " + table_name
 			try:
 				cursor.execute(sql)
 				user = cursor.fetchall()
-				for user_id in user
+				for user_id in user:
 					bloom_filter.add(user_id[0])
 			except Exception as e:
 				print e
 
 	def extend_root_user(self, root_users):
-		global user_list, api_list
+		global user_list, api_list, extend_list
 		global bloom_filter, api_count
+
+		print "extending root user..."
 
 		api_index = 0
 		sleep_count = 0
@@ -72,17 +78,15 @@ class Crawler:
 		for root_user in root_users:
 			try:
 				api_index = (api_index + 1) % api_count
-				friends = api_list[api_index].GetFriendIDsPaged(user_id = root_user, cursor = -1, count = 500)
+				friends = api_list[api_index].GetFriendIDsPaged(user_id = root_user, cursor = -1, count = 200)
 				friend_list = friends[2]
 			except Exception as e:
+				print e
 				if hasattr(e, "message"):
 					try:
 						if e.message[0]['code'] == 88:
 							print "sleeping..."
 							time.sleep(900)
-							continue
-						elif e.message[0]['code'] != 50:
-							print e
 							continue
 					except Exception as e2:
 						print e2
@@ -95,36 +99,35 @@ class Crawler:
 				if fd not in bloom_filter:
 					bloom_filter.add(fd)
 					user_list.append(fd)
-				except Exception as e:
-					print e
-					continue
 
+		extend_list = user_list[0 : ]
+				
 
 class ThreadExtend(threading.Thread):
 	def  __init__(self):
 		threading.Thread.__init__(self)
 		
 	def run(self):
-		global user_list, api_list
+		global user_list, api_list, extend_list
 		global bloom_filter, api_count
-	
+		
+		count = 0
 		api_index = 0
 		sleep_count = 0
-		count = 0
 
-		while count < 50000000:
+		while count < 30000000:
+			user_id = extend_list.pop(0)
 			try:
 				api_index = (api_index + 1) % api_count
-				friends = apis[api_index].GetFriendIDsPaged(user_id = user_id, cursor = -1, count = 5000)
+				friends = api_list[api_index].GetFriendIDsPaged(user_id = user_id, cursor = -1, count = 5000)
+				friend_list = friends[2]
 			except Exception as e:
+				print e
 				if hasattr(e, "message"):
 					try:
 						if e.message[0]['code'] == 88:
 							print "sleeping..."
 							time.sleep(900)
-							continue
-						elif e.message[0]['code'] != 50:
-							print e
 							continue
 					except Exception as e2:
 						print e2
@@ -138,6 +141,7 @@ class ThreadExtend(threading.Thread):
 					if fd not in bloom_filter:
 						count = count + 1
 						bloom_filter.add(fd)
+						extend_list.append(fd)
 						if lock.acquire():
 							user_list.append(fd)
 							lock.release()
@@ -161,7 +165,7 @@ class ThreadCrawler(threading.Thread):
 			if lock.acquire():
 				user_id = user_list.pop(0)
 				lock.release()
-			print user_id + " ..."
+			print str(user_id) + " ..."
 			
 			db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 			db.set_character_set('utf8')
@@ -201,7 +205,7 @@ class ThreadCrawler(threading.Thread):
 				listed_count = user.listed_count if user.listed_count else 0
 				default_profile_image = 1 if user.default_profile_image else 0 
 
-				sql = """INSERT INTO user_random_5000(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
+				sql = """INSERT INTO user_random_3000(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
 						followers_count, favourites_count, lang, protected, time_zone, verified, utc_offset, geo_enabled, listed_count,
 						is_translator, default_profile_image, profile_background_color, profile_sidebar_fill_color, profile_image_url, crawler_date) VALUES
 						('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, '%s', %d, '%s', %d, '%s', %d, %d, %d, %d,
@@ -232,7 +236,7 @@ if __name__ == "__main__":
 	db.set_character_set('utf8')
 	cursor = db.cursor()
 
-	sql = "select user_id from user_all_valid limit 555"
+	sql = "select user_id from user_all_valid limit 355"
 	try:
 		cursor.execute(sql)
 		user = cursor.fetchall()

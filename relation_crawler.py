@@ -6,16 +6,14 @@ import time
 class RelationshipCrawler:
 	def __init__(self):
 		api = []
-		self.apiCount = 50
-		for i in range(50):
+		self.apiCount = 58
+		for i in range(58):
 			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
 		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
 
 		self.api = api
-		self.apiIndex = 0
-		self.sleep_count = 0
 		
 		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 		cursor = db.cursor()
@@ -26,7 +24,7 @@ class RelationshipCrawler:
 
 
 	def getAllUsersRelation(self):
-		sql = "select userid, friends_count, followers_count from user" 
+		sql = "select user_id from user_all_valid" 
 		try:
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()
@@ -34,13 +32,8 @@ class RelationshipCrawler:
 			return -1
 
 		for ii in info:
-			if ii[0] == '':
-				continue
 			try:
-				# if ii[1] < 50000:
-				# 	self.getFollowing(ii[0])
-				if ii[2] < 100000:
-					self.getFollowers(ii[0])
+				self.getFollowers(ii[0])
 				print ii[0] + " finished..."
 			except Exception as e:
 				print ii[0] + " failed"
@@ -59,10 +52,11 @@ class RelationshipCrawler:
 			file_obj.write("\n")
 
 		cursor = -1
+		api_index = 0
 
 		while cursor != 0:
-			api = self.api[self.apiIndex]
-			self.apiIndex = (self.apiIndex + 1) % self.apiCount
+			api = self.api[api_index]
+			api_index = (api_index + 1) % self.apiCount
 			
 			try:
 				out = api.GetFriendIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
@@ -107,9 +101,13 @@ class RelationshipCrawler:
 		
 		cursor = -1
 		
+		api_index = 0
+		sleep_count = 0
+		api_count = 58
+
 		while cursor != 0:
-			api = self.api[self.apiIndex]
-			self.apiIndex = (self.apiIndex + 1) % self.apiCount
+			api = self.api[api_index]
+			api_index = (api_index + 1) % api_count
 
 			try:
 				out = api.GetFollowerIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
@@ -121,14 +119,13 @@ class RelationshipCrawler:
 				print e
 				print user_id
 				if hasattr(e,"message"):
-					print e.message
 					try:
 						if e.message[0]['code'] == 88:
-							self.sleep_count = self.sleep_count + 1
-							if self.sleep_count == self.apiCount:
+							sleep_count = sleep_count + 1
+							if sleep_count == api_count:
 								print "sleeping..."
 								time.sleep(900)
-								self.sleep_count = 0
+								sleep_count = 0
 							continue
 					except Exception as e2:
 						print e2
