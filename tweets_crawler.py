@@ -3,21 +3,20 @@ import config
 import MySQLdb
 import time
 import threading
-from pymongo import MongoClient
 
-LOCK = threading.Lock()
+# log_obj = open('log/log.txt','a')
 
 class Crawler:
 	def __init__(self):
-		apis = []
+		api = []
 
 		for i in range(58):
-			apis.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
+			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
 		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
 		                      access_token_key=config.APP_INFO[i]['access_token_key'],
 		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
 
-		self.apis = apis
+		self.api = api
 
 		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 		cursor = db.cursor()
@@ -26,45 +25,40 @@ class Crawler:
 
 
 	def get_all_user_tweets(self):
-		sql = "select user_id, statuses_count from user_all_valid" 
+		sql = "select user_id from user_5" 
 		try:
 			self.cursor.execute(sql)
-			user_info = self.cursor.fetchall()
+			info = self.cursor.fetchall()
 		except:
 			return -1
 
 		i = 0
-		thread_pool = []
-		thread_num = config.THREAD_NUM
-		# length = len(user_info)
+		threadNum = config.THREAD_NUM
+		length = len(info)
+		threadPool = []
+		per_thread = length / threadNum
 		
-		# per_thread = length / threadNum
-		# while i < threadNum:
-		# 	if i + 1 == threadNum:
-		# 		crawThread = ThreadCrawler(user_info[i * per_thread : ], self.apis)
-		# 	else:
-		# 		crawThread = ThreadCrawler(user_info[i * per_thread : (i + 1) * per_thread], self.apis)
+		while i < threadNum:
+			if i + 1 == threadNum:
+				crawThread = ThreadCrawler(info[i * per_thread : ], self.api)
+			else:
+				crawThread = ThreadCrawler(info[i * per_thread : (i + 1) * per_thread], self.api)
 			
-		# 	crawThread.start()
-		# 	threadPool.append(crawThread)
-		# 	i = i + 1
-	
-		while i < thread_num:
-			craw_thread = ThreadCrawler(user_info, self.apis)
-			craw_thread.start()
-			thread_pool.append(craw_thread)
-
-		for thread in thread_pool:
+			crawThread.start()
+			threadPool.append(crawThread)
+			i = i + 1
+			
+		for thread in threadPool:
 			thread.join()
 
 
 	def restart(self):
-		sql = "select user_id from user_all_valid" 
+		sql = "select userid from user" 
 		try:
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()
 			for ii in info:
-				return
+				self.bf.add(ii[0])
 		except:
 			return -1
 		
@@ -78,127 +72,79 @@ class ThreadCrawler(threading.Thread):
 		self.apis = apis
 
 	def run(self):
+		
 		apis = self.apis
 		users = self.users
+		# global log_obj
 		api_index = 0
 		api_count = 58
 		sleep_count = 0
 
-		client = MongoClient('127.0.0.1', 27017)
-		db_name = 'twitter'
-		db = client[db_name]
-		collect1 = db['tweets_1']
-		collect2 = db['tweets_2']
+		for info in users:
 
-		while len(users) > 0:
-			if LOCK.acquire():
-				user = users.pop(0)
-				LOCK.release()
-				
-			user_id = user[0]
+			user_id = info[0]
 			print user_id + " ..."
 
-			count = collect1.find({'user_id': user_id}).count()
+			try: 
+				tweets = apis[api_index].GetUserTimeline(user_id = user_id, count = 200)
+			except Exception as e:
+				print e
 
-			if (user[1] > 3000 and count > 2800) or (user[1] < 3000 and count > user[1] - 26):
+			if len(tweets) == 0:
 				continue
 
-			collect1.remove({'user_id': user_id})
-			flag  = True
-			tweets = [0]
+			file_obj = open('tweets/' + user_id + '.txt','w')
+
+			for tt in tweets:
+				# insert into mongodb
+				try:
+					# file_obj.write(str(tt.id) + "\t" + str(tt.retweet_count) + "\t" + str(tt.favorite_count) + "\t" + tt.created_at.encode('utf-8') + "\n")
+					file_obj.write(tt.text.replace(u'\xa0', u' ').replace('\n','  ').encode("utf-8") + "\n")
+				except Exception as e1:
+					print e1
+					break
 			
 			while len(tweets) > 0:
-				api_index = (api_index + 1) % api_count
-				if flag:
-					try:
-						tweets = apis[api_index].GetUserTimeline(user_id = user_id, trim_user = True, count = 200)
-						flag = False
-					except Exception as e:
-						if hasattr(e, "message"):
-							print e.message
-							try:
-								if e.message[0]['code'] == 88:
-									sleep_count = sleep_count + 1
-									if sleep_count == api_count:
-										print "sleeping..."
-										sleep_count = 0
-										time.sleep(700)
-									flag = True
-									continue
-								else:
-									print e
-									break
-							except Exception as e2:
-								print e2
+				try:
+					# RT @taylorswift13: So much love...(retweet)  # tag #word  @user
+					api_index = (api_index + 1) % api_count
+					tweets = apis[api_index].GetUserTimeline(user_id = user_id, count = 200, max_id = tweets[-1].id - 1)
+				except Exception as e:
+					print e
+					break
+					if hasattr(e, "message"):
+						print e.message
+						try:
+							if e.message[0]['code'] == 88:
+								sleep_count = sleep_count + 1
+								if sleep_count == api_count:
+									print "sleeping..."
+									sleep_count = 0
+									time.sleep(800)
+								continue
+							else:
+								print e
 								break
-						else:
-							print e
+								# log_obj.write(user_id + " " + time.strftime('%Y-%m-%d',time.localtime(time.time())) + "\n")
+								# log_obj.write(e.message[0]['message'])
+						except Exception as e2:
+							print e2
 							break
-				else:
-					try:
-						# RT @taylorswift13: So much love...(retweet)  # tag #word  @user
-						tweets = apis[api_index].GetUserTimeline(user_id = user_id, count = 200, trim_user = True, max_id = tweets[-1].id - 1)
-					except Exception as e:
-						if hasattr(e, "message"):
-							print e.message
-							try:
-								if e.message[0]['code'] == 88:
-									sleep_count = sleep_count + 1
-									if sleep_count == api_count:
-										print "sleeping..."
-										sleep_count = 0
-										time.sleep(700)
-									continue
-								else:
-									print e
-									break
-							except Exception as e2:
-								print e2
-								break
-						else:
-							print e
-							break
+					else:
+						print e
+						break
 					
 				for tt in tweets:
-
-					tweet = {
-						# 'contributors': tt.,
-						'coordinates': tt.coordinates,  # Coordinates
-						'created_at': tt.created_at, # String
-						# 'current_user_retweet': None,
-						'favorite_count': tt.favorite_count, # int
-						# 'favorited': tt.favorited,
-						'filter_level': tt.filter_level if hasattr(tt, 'filter_level') else '', # String
-						# 'geo': tt.geo,
-						'hashtags': map(lambda x: x.text, tt.hashtags), # {'0': ,'1':}
-						'_id': tt.id_str, # String
-						# 'id_str': tt.id_str,
-						'in_reply_to_screen_name': tt.in_reply_to_screen_name,
-						'in_reply_to_status_id': tt.in_reply_to_status_id,
-						'in_reply_to_user_id': tt.in_reply_to_user_id,
-						'lang': tt.lang, # String
-						# 'media': tt.media,
-						'place': tt.place, # Place
-						'possibly_sensitive': tt.possibly_sensitive, # Boolean
-						'retweet_count': tt.retweet_count, # int
-						# 'retweeted': tt.retweeted,
-						# 'retweeted_status': tt.retweeted_status,
-						# 'scopes': tt.scopes, # Object
-						'source': tt.source, # String
-						'text': tt.text, # String
-						# 'truncated': tt.truncated,
-						# 'urls': tt.urls, # []
-						'user_id': tt.user.id, # int
-						'user_mentions': map(lambda x: x.id, tt.user_mentions), # []
-						'withheld_copyright': tt.withheld_copyright, # Boolean
-						'withheld_in_countries': tt.withheld_in_countries, # Array of String
-						'withheld_scope': tt.withheld_scope, #String
-					}
+					# insert into mongodb
 					try:
-						collect2.insert_one(tweet)
-					except Exception as e:
-						print e
+						# file_obj.write(str(tt.id) + "\t" + str(tt.retweet_count) + "\t" + str(tt.favorite_count) + "\t" + tt.created_at.encode('utf-8') + "\n")
+						file_obj.write(tt.text.replace(u'\xa0', u' ').replace('\n','  ').encode("utf-8") + "\n")
+					except Exception as e1:
+						print e1
+						break
+			file_obj.close()
 	
+
 		
 
 if __name__ == "__main__":
