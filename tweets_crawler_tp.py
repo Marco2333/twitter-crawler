@@ -14,15 +14,16 @@ class Crawler:
 		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
 
 		self.api = api
-		# self.apiIndex = 0
+		self.apiIndex = 0
+		self.sleep_count = 0
 		# self.months = dict(Jan = '1', Feb = '2', Mar = '3', Apr = '4', \
 		# 				May = '5', Jun = '6', Jul = '7', Aug = '8', \
 		# 				Sep = '9', Oct = '10', Nov = '11', Dec = '12')
 
-		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
-		cursor = db.cursor()
-		self.cursor = cursor
-		self.db = db
+		# db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
+		# cursor = db.cursor()
+		# self.cursor = cursor
+		# self.db = db
 		# self.sleep_count = 0
 		self.getAllUsersTweets()
 		# self.getUserTweets('17919972')
@@ -30,31 +31,25 @@ class Crawler:
 
 
 	def getAllUsersTweets(self):
-		sql = "select user_id from user_5" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-		except:
-			return -1
+		name_list = ['floydmayweather','mannypacquiao','katyperry','onedirection','HowardStern','garthbrooks','jp_books','robertdowneyjr','taylorswift13','cristiano','rushlimbaugh','TheEllenShow','messi10stats ','ExpertsAcademy','DrPhil','rogerfederer','CalvinHarris','KingJames','jtimberlake','d_copperfield','diddy','GordonRamsay','ryanseacrest','fleetwoodmac','ladygaga','RollingStones','edsheeran','S_C_','Beyonce','KDTrey5','eltonofficial','TobyKeithMusic','KimKardashian','jldaily','PaulMcCartney','MickelsonHat','TigerWoods','EyeOfJackieChan','kobebryant','4Roethlisberger','McIlroyRory','DjokerNole','VinDieselPage','1inchtallJudy','michaelbuble','giseleofficial','Jason_Aldean','LukeBryanOnline','kennychesney','BradleyCooperUS','Adam Sandler','TomCruise','BrunoMars','LewisHamilton','Ibra_official','NdamukongSuh','foofighters','TheTimMcGraw','davidguetta','FLAGALine','jimmybuffett','JerrySeinfeld','tiesto','alo_oficial','GarethBale11','Letterman','JLester34','drose','srbachchan','BeingSalmanKhan','maroon5','drdre','f1_vettel','akshaykumar','RafaelNadal','zacbrownband','mark_wahlberg','Pharrell','TheRock','msdhoni','Eminem','neymarjr ','britneyspears','carmeloanthony','realdepp','MariaSharapova','leodicaprio','seanhannity','carsonpalmer','jamesdrodriguez','channingtatum','KevinHart4real','mirandalambert','JLo','blakeshelton','barackobama','realDonaldTrump','tim_cook','hillaryclinton','billgates ','MarkZuckerbergF','Militarydotcom','USArmy','USNavy','militarymission','CENTCOM','PacificCommand','KSWANIER11','Mike_Hixenbaugh','KimGuadagnoNJ','Mansourtalk','defense_news','business','FT','Forbes','EconBizFin','JohnJHarwood','JHWeissmann','HarvardBiz','businessinsider','LaMonicaBuzz','TerryMcAuliffe','WSJ','maddow','SenSanders','ezraklein','jaketapper','SarahPalinUSA','michellemalkin','DomenicoNPR','samsteinhp','davidfrum','CoryBooker','JohnJHarwood','TheRickWilson','RandPaul','cgentilviso','THEHermanCain','elonmusk','Google','waltmossberg','TEDchris','Pogue','timoreilly','DanielHowley','ginasunseri','ZebraTechnology','USDA','RepHartzler','EU_Agri','TexasDeptofAg','JCBAgriculture','PAAgriculture','EP_Agriculture','VaAgriculture','SKAgriculture','AgMuseum','Agri_Exports','PaulBrannenNE','akin_adesina','kannbwx','GBabbehali','rdigit','Tomhayestd','Casey_J_Wooten','jenskerritt','DalaiLama','CNNbelief','HuffPostRelig','Pontifex','RichardDawkins','kenfisher','SachinKalbag','cejioffice','gatesed','NatGeoEducation','educationnation','IvankaTrump','splcenter','edutopia','educationweek','khanacademy','usedgov','Academy','ExpertsAcademy']
 
-		for ii in info:
+		for ii in name_list:
 			try:
-				self.getUserTweets(ii[0])
-				print ii[0] + " finished..."
+				self.getUserTweets(ii)
+				print ii + " finished..."
 			except Exception as e:
-				print ii[0] + " failed"
+				print ii + " failed"
 				print e
 				continue
 	
 
-	def getUserTweets(self, user_id):
+	def getUserTweets(self, screen_name):
 		api = self.api[self.apiIndex]
 		self.apiIndex = (self.apiIndex + 1) % self.apiCount
 		try:
 			# get a specific user's timeline
-			tweets = api.GetUserTimeline(user_id = user_id, count = 200)
+			tweets = api.GetUserTimeline(screen_name = screen_name, count = 200)
 		except Exception as e:
-			print str(user_id) + ": get timeline failed"
 			print e
 			if hasattr(e,"message"):
 				print e.message
@@ -65,7 +60,7 @@ class Crawler:
 							print "sleeping..."
 							time.sleep(900)
 							self.sleep_count = 0
-							self.getUserTweets(user_id)
+							self.getUserTweets(screen_name)
 							return
 						
 				except Exception as e2:
@@ -75,35 +70,14 @@ class Crawler:
 		if len(tweets) <= 0:
 			return
 
-		user = tweets[0].user
-		screen_name = user.screen_name
-		join_date = user.created_at
-		print screen_name + "...."
-		try:
-			jd = join_date.split(' ')
-			join_date = jd[5] + "-" + self.months[jd[1]] + "-" + jd[2]
-		except Exception as e:
-			print e
-			join_date = ""
+		
 
-		# all_tweets = tweets[0].user.statuses_count
-
-		sql = """update user_1_2 set screenname = '%s', name = '%s', location = '%s', joinDate = '%s', bio = '%s', 
-				tweetNum = '%s', watchNum = '%s', fansNum = '%s', likeNum = '%s', created_at = '%s' where userid = '%s'""" \
-				% (screen_name, user.name, user.location, join_date, user.description, user.statuses_count, \
-				user.friends_count, user.followers_count, user.favourites_count, time.strftime('%Y-%m-%d',time.localtime(time.time())), user_id)
-		try:
-		   self.cursor.execute(sql)
-		   self.db.commit()
-		except:
-		   return -1
-
-		file_obj = open('tweets_1_2/' + screen_name + '.txt','w')
+		file_obj = open('tweets/' + screen_name + '.txt','w')
 
 		while len(tweets) > 0:
 			for tt in tweets:
 				try:
-					file_obj.write(str(tt.id) + "\t" + str(tt.retweet_count) + "\t" + str(tt.favorite_count) + "\t" + tt.created_at.encode('utf-8') + "\n")
+					# file_obj.write(str(tt.id) + "\t" + str(tt.retweet_count) + "\t" + str(tt.favorite_count) + "\t" + tt.created_at.encode('utf-8') + "\n")
 					file_obj.write(tt.text.replace(u'\xa0', u' ').replace('\n','  ').encode("utf-8") + "\n")
 				except Exception as e1:
 					print e1
@@ -112,10 +86,10 @@ class Crawler:
 				# RT @taylorswift13: So much love...(retweet)
 				# tag #word  @user
 				api = self.api[self.apiIndex]
-				tweets = api.GetUserTimeline(user_id = user_id, count = 200, max_id = tweets[-1].id - 1)
+				self.apiIndex = (self.apiIndex + 1) % self.apiCount
+				tweets = api.GetUserTimeline(screen_name = screen_name, count = 200, max_id = tweets[-1].id - 1)
 
 			except Exception as e:
-				print screen_name + ": get timeline failed"
 				print e
 				if hasattr(e,"message"):
 					print e.message
@@ -124,14 +98,7 @@ class Crawler:
 							self.sleep_count = self.sleep_count + 1
 							if self.sleep_count == self.apiCount:
 								print "sleeping..."
-								time.sleep(900)
-								self.sleep_count = 0
-								try:
-									tweets = api.GetUserTimeline(user_id = user_id, count = 200, max_id = tweets[-1].id - 1)
-									print 'hhd.....'
-								except Exception as e3:
-									print e3
-									return
+								time.sleep(900)		
 							continue
 					except Exception as e2:
 						print e2
@@ -140,19 +107,6 @@ class Crawler:
 				return
 
 		file_obj.close()
-
-
-	def restart(self):
-		sql = "select userid from user" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-			for ii in info:
-				self.bf.add(ii[0])
-		except:
-			return -1
-		
-		return
 
 		
 spider = Crawler()

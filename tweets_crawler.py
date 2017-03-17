@@ -1,10 +1,8 @@
-import twitter
-import config
 import MySQLdb
 import time
 import threading
 
-# log_obj = open('log/log.txt','a')
+from api import Api
 
 class Crawler:
 	def __init__(self):
@@ -24,47 +22,7 @@ class Crawler:
 		self.db = db
 
 
-	def get_all_user_tweets(self):
-		sql = "select user_id from user_5" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-		except:
-			return -1
-
-		i = 0
-		threadNum = config.THREAD_NUM
-		length = len(info)
-		threadPool = []
-		per_thread = length / threadNum
-		
-		while i < threadNum:
-			if i + 1 == threadNum:
-				crawThread = ThreadCrawler(info[i * per_thread : ], self.api)
-			else:
-				crawThread = ThreadCrawler(info[i * per_thread : (i + 1) * per_thread], self.api)
-			
-			crawThread.start()
-			threadPool.append(crawThread)
-			i = i + 1
-			
-		for thread in threadPool:
-			thread.join()
-
-
-	def restart(self):
-		sql = "select userid from user" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-			for ii in info:
-				self.bf.add(ii[0])
-		except:
-			return -1
-		
-		return
-
-
+	
 class ThreadCrawler(threading.Thread):
 	def  __init__(self, users, apis):
 		threading.Thread.__init__(self)

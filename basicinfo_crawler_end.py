@@ -30,7 +30,7 @@ class Crawler:
 
 		global user_list
 
-		sql = "select user_id from user_userid_3 limit 6000000"
+		sql = "select user_id from user_userid_2 limit 5000000"
 
 		try:
 			cursor.execute(sql)
@@ -300,18 +300,18 @@ class ThreadCrawler(threading.Thread):
 		
 
 if __name__ == "__main__":
-	db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
-	db.set_character_set('utf8')
-	cursor = db.cursor()
+	# db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
+	# db.set_character_set('utf8')
+	# cursor = db.cursor()
 
-	sql = "select user_id from user_increase_valid limit 3600, 3900"
-	try:
-		cursor.execute(sql)
-		user = cursor.fetchall()
-	except Exception as e:
-		print e
+	# sql = "select user_id from user_increase_valid limit 3600, 3900"
+	# try:
+	# 	cursor.execute(sql)
+	# 	user = cursor.fetchall()
+	# except Exception as e:
+	# 	print e
 
 	crawler = Crawler()
-	# crawler.fill_user_detail()
-	crawler.bfs_user(map(lambda x: x[0], user))
+	crawler.fill_user_detail()
+	# crawler.bfs_user(map(lambda x: x[0], user))
 
