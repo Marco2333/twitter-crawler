@@ -287,8 +287,7 @@ class ThreadCrawler(threading.Thread):
 				continue
 
 			try:
-				cursor.execute(sql)
-				db.commit()
+				
 			except Exception as e:
 				try:
 					print sql

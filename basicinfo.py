@@ -3,6 +3,9 @@ import twitter
 import config
 import MySQLdb
 import threading
+import warnings
+
+warnings.filterwarnings("ignore")
 
 api_count = 58
 api_list = []
@@ -20,39 +23,70 @@ class Crawler:
 		                      access_token_key = config.APP_INFO[i]['access_token_key'],
 		                      access_token_secret = config.APP_INFO[i]['access_token_secret']))
 
-	def fill_user_detail(self):
+	def restart(self):
 		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
 		db.set_character_set('utf8')
 		cursor = db.cursor()
 
-		global user_list
+		i = 1
 
-		sql = "select user_id from user_userid_1 limit 500000"
+		sql = "insert into user_fill select * from user_fill_%s" % i
+		cursor.execute(sql)
+		db.commit()
+		
+		sql = "delete from user_userid_%s where user_id in (select user_id from user_fill_%s)" % (i, i)
+		cursor.execute(sql)
+		db.commit()
+		
+		sql = "delete from user_fill_%s" % i
+		cursor.execute(sql)
+		db.commit()
 
-		try:
-			cursor.execute(sql)
-			user_list = cursor.fetchall()
-			user_list = map(lambda x: x[0], user_list)
-		except Exception as e:
-			print e
+		db.close()
+				
 
-		i = 0
-		thread_pool = []
-		thread_num = config.THREAD_NUM
+	def fill_user_detail(self):
+		n = 0
+		while n < 8:
+			n += 1
+			print str(n) + ' ...'
+			db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
+			db.set_character_set('utf8')
+			cursor = db.cursor()
 
-		while i < thread_num:
-			craw_thread = ThreadCrawler()
-			craw_thread.start()
-			thread_pool.append(craw_thread)
-			i = i + 1
+			global user_list
 
-		for thread in thread_pool:
-			thread.join()
+			sql = "select user_id from user_userid_1 limit 200000"
+
+			try:
+				cursor.execute(sql)
+				user_list = cursor.fetchall()
+				user_list = map(lambda x: x[0], user_list)
+			except Exception as e:
+				print e
+
+			i = 0
+			thread_pool = []
+			thread_num = config.THREAD_NUM
+
+			while i < thread_num:
+				craw_thread = ThreadCrawler()
+				craw_thread.start()
+				thread_pool.append(craw_thread)
+				i = i + 1
+
+			for thread in thread_pool:
+				thread.join()
+
+			cursor.close()
+			db.close()
+			self.restart()
 
 		
 class ThreadCrawler(threading.Thread):
 	def  __init__(self):
 		threading.Thread.__init__(self)
+		print 'thread start ...'
 
 	def run(self):
 		global user_list, api_list
@@ -69,26 +103,12 @@ class ThreadCrawler(threading.Thread):
 			if lock.acquire():
 				user_id = user_list.pop(0)
 				lock.release()
-			print str(user_id) + " ..."
+			# print str(user_id) + " ..."
 			
 			try:
 				api_index = (api_index + 1) % api_count
 				user = api_list[api_index].GetUser(user_id = user_id)
 			except Exception as e:
-				# db.close()
-				# del db
-				# del cursor
-				if hasattr(e, "message"):
-					try:
-						if e.message[0]['code'] == 88:
-							print "sleeping..."
-							time.sleep(60)
-							continue
-					except Exception as e2:
-						print e2
-						continue
-				else:
-					print e
 				continue
 
 			try:
@@ -105,7 +125,7 @@ class ThreadCrawler(threading.Thread):
 				listed_count = user.listed_count if user.listed_count else 0
 				default_profile_image = 1 if user.default_profile_image else 0 
 
-				sql = """INSERT INTO user_fill_2(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
+				sql = """INSERT INTO user_fill_1(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
 						followers_count, favourites_count, lang, protected, time_zone, verified, utc_offset, geo_enabled, listed_count,
 						is_translator, default_profile_image, profile_background_color, profile_sidebar_fill_color, profile_image_url, crawler_date) VALUES
 						('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, '%s', %d, '%s', %d, '%s', %d, %d, %d, %d,
@@ -114,35 +134,17 @@ class ThreadCrawler(threading.Thread):
 						user.utc_offset, geo_enabled, listed_count, is_translator, default_profile_image, user.profile_background_color, \
 						user.profile_sidebar_fill_color, user.profile_image_url, time.strftime('%Y-%m-%d',time.localtime(time.time()))) 
 
-			except Exception as e:
-				# db.close()
-				# del db
-				# del cursor
-				del sql
-				print e
+			except Exception as e:	
 				continue
 
 			try:
 				cursor.execute(sql)
 				db.commit()
 			except Exception as e:
-				try:
-					# db.close()
-					# del db
-					# del cursor
-					print sql
-					del sql
-				except:
-					continue
-				print e
 				continue
-			# db.close()
-			# del db
-			# del cursor
-			del sql
 		
+		db.close()
 
 if __name__ == "__main__":
 	crawler = Crawler()
 	crawler.fill_user_detail()
-	

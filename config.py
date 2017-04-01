@@ -11,6 +11,14 @@ DB_PASSWD = 'aliyunmysql@'
 DB_HOST = '127.0.0.1'
 DB_DATABASE = 'twitter'
 DB_CHARSET = 'utf8mb4'
+
+MYSQL = {
+	'DB_USER': 'root',
+	'DB_PASSWD': 'aliyunmysql@',
+	'DB_HOST': '127.0.0.1',
+	'DB_DATABASE': 'twitter',
+	'DB_CHARSET': 'utf8mb4'
+}
 ############################## App Config(58) #####################################
 APP_INFO = [{
 		#========================50=======================================

@@ -1,110 +1,144 @@
-import MySQLdb
 import time
 import threading
 
-from api import Api
+from config import THREAD_NUM
+from twitter import error
+from api import ApiList, ApiCount
+from database import MongoDB
 
-class Crawler:
+class TweetsCrawler:
 	def __init__(self):
-		api = []
-
-		for i in range(58):
-			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
-		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
-		                      access_token_key=config.APP_INFO[i]['access_token_key'],
-		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
-
-		self.api = api
-
-		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
-		cursor = db.cursor()
-		self.cursor = cursor
-		self.db = db
-
-
-	
-class ThreadCrawler(threading.Thread):
-	def  __init__(self, users, apis):
-		threading.Thread.__init__(self)
-		self.users = users
-		self.apis = apis
-
-	def run(self):
+		self.api_index = 0
 		
-		apis = self.apis
-		users = self.users
-		# global log_obj
-		api_index = 0
-		api_count = 58
+	def get_user_timeline(self,
+						  user_id = None,
+						  screen_name = None, 
+						  since_id = None, 
+						  max_id = None, 
+						  count = None, 
+						  include_rts = True, 
+						  trim_user = True, 
+						  exclude_replies = False):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		tweets = api.GetUserTimeline(user_id = user_id,	screen_name = screen_name, 
+									 since_id = since_id, max_id = max_id, count = count,
+									 include_rts = include_rts, trim_user = trim_user,
+									 exclude_replies = exclude_replies)
+
+		return tweets
+
+	def get_user_all_timeline(user_id = None,
+						  	  screen_name = None, 
+						  	  include_rts = True, 
+						  	  exclude_replies = False):
+
+		if users == None and screen_name == None:
+			return
+
+		flag = True
+		tweets = [0]
 		sleep_count = 0
+		api_index = self.api_index
+		db = MongoDB().connect()
+		collect = db['tweets']
 
-		for info in users:
+		while len(tweets) > 0:
+			api_index = (api_index + 1) % ApiCount
+			api = ApiList[api_index]
 
-			user_id = info[0]
-			print user_id + " ..."
+			try:
+				if flag:
+					tweets = api.GetUserTimeline(user_id = user_id, screen_name = screen_name, 
+												include_rts = include_rts, exclude_replies = exclude_replies,
+						  	  					trim_user = True, count = 200)
+					flag = False
 
-			try: 
-				tweets = apis[api_index].GetUserTimeline(user_id = user_id, count = 200)
-			except Exception as e:
-				print e
+				else:
+					tweets = api.GetUserTimeline(user_id = user_id, screen_name = screen_name,
+												include_rts = include_rts, exclude_replies = exclude_replies,
+						 						trim_user = True, count = 200, max_id = tweets[-1].id - 1)
 
-			if len(tweets) == 0:
-				continue
-
-			file_obj = open('tweets/' + user_id + '.txt','w')
-
-			for tt in tweets:
-				# insert into mongodb
-				try:
-					# file_obj.write(str(tt.id) + "\t" + str(tt.retweet_count) + "\t" + str(tt.favorite_count) + "\t" + tt.created_at.encode('utf-8') + "\n")
-					file_obj.write(tt.text.replace(u'\xa0', u' ').replace('\n','  ').encode("utf-8") + "\n")
-				except Exception as e1:
-					print e1
+			except error.TwitterError as te:
+				if te.message[0]['code'] == 88:
+					sleep_count += 1
+					if sleep_count == ApiCount:
+						print "sleeping..."
+						sleep_count = 0
+						time.sleep(700)
+					continue
+				else:
 					break
+			except Exception as e:	
+				break
 			
-			while len(tweets) > 0:
+				
+			for tt in tweets:
+				tweet = {
+					'coordinates': tt.coordinates,  # Coordinates
+					'created_at': tt.created_at, # String
+					'favorite_count': tt.favorite_count, # int
+					'filter_level': tt.filter_level if hasattr(tt, 'filter_level') else '', # String
+					'hashtags': map(lambda x: x.text, tt.hashtags), # {'0': ,'1':}
+					'_id': tt.id_str, # String
+					# 'in_reply_to_screen_name': tt.in_reply_to_screen_name,
+					'in_reply_to_status_id': tt.in_reply_to_status_id,
+					'in_reply_to_user_id': tt.in_reply_to_user_id,
+					'lang': tt.lang, # String
+					# 'media': tt.media,
+					'place': tt.place, # Place
+					'possibly_sensitive': tt.possibly_sensitive, # Boolean
+					'retweet_count': tt.retweet_count, # int
+					'source': tt.source, # String
+					'text': tt.text, # String
+					# 'truncated': tt.truncated,
+					# 'urls': tt.urls, # []
+					'user_id': tt.user.id, # int
+					'user_mentions': map(lambda x: x.id, tt.user_mentions), # []
+					'withheld_copyright': tt.withheld_copyright, # Boolean
+					'withheld_in_countries': tt.withheld_in_countries, # Array of String
+					'withheld_scope': tt.withheld_scope, #String
+				}
 				try:
-					# RT @taylorswift13: So much love...(retweet)  # tag #word  @user
-					api_index = (api_index + 1) % api_count
-					tweets = apis[api_index].GetUserTimeline(user_id = user_id, count = 200, max_id = tweets[-1].id - 1)
+					collect.insert_one(tweet)
 				except Exception as e:
-					print e
-					break
-					if hasattr(e, "message"):
-						print e.message
-						try:
-							if e.message[0]['code'] == 88:
-								sleep_count = sleep_count + 1
-								if sleep_count == api_count:
-									print "sleeping..."
-									sleep_count = 0
-									time.sleep(800)
-								continue
-							else:
-								print e
-								break
-								# log_obj.write(user_id + " " + time.strftime('%Y-%m-%d',time.localtime(time.time())) + "\n")
-								# log_obj.write(e.message[0]['message'])
-						except Exception as e2:
-							print e2
-							break
-					else:
-						print e
-						break
-					
-				for tt in tweets:
-					# insert into mongodb
-					try:
-						# file_obj.write(str(tt.id) + "\t" + str(tt.retweet_count) + "\t" + str(tt.favorite_count) + "\t" + tt.created_at.encode('utf-8') + "\n")
-						file_obj.write(tt.text.replace(u'\xa0', u' ').replace('\n','  ').encode("utf-8") + "\n")
-					except Exception as e1:
-						print e1
-						break
-			file_obj.close()
+					continue
 	
 
-		
+	def get_all_users_timeline(user_list = None, 
+							   include_rts = True, 
+							   exclude_replies = False):		
 
-if __name__ == "__main__":
-	crawler = Crawler()
-	crawler.get_all_user_tweets()
+		if len(user_list) == 0:
+			return
+
+		i = 0
+		thread_pool = []
+		self.lock = threading.Lock()
+
+		while i < THREAD_NUM:
+
+			threads.append(threading.Thread(target = get_users_timeline_thread, 
+											args = (user_list, include_rts, exclude_replies)))
+			craw_thread.start()
+			thread_pool.append(craw_thread)
+			i = i + 1
+
+		for thread in thread_pool:
+			thread.join()
+
+	def get_users_timeline_thread(user_list = None, include_rts = True, exclude_replies = False):
+		lock = self.lock
+		while len(user_list) > 0:
+			if lock.acquire():
+				user_id = user_list.pop(0)
+				lock.release()
+
+			get_user_all_timeline(user_id = user_id,
+						  	  include_rts = include_rts, 
+						  	  exclude_replies = exclude_replies)

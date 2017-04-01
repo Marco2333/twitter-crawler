@@ -1,156 +1,269 @@
-import twitter
-import config
-import MySQLdb
 import time
+# import threading
 
-class RelationshipCrawler:
+# from config import THREAD_NUM
+from twitter import error
+from api import ApiList, ApiCount
+# from database import Mysql
+
+class RelationCrawler:
 	def __init__(self):
-		api = []
-		self.apiCount = 58
-		for i in range(58):
-			api.append(twitter.Api(consumer_key=config.APP_INFO[i]['consumer_key'],
-		                      consumer_secret=config.APP_INFO[i]['consumer_secret'],
-		                      access_token_key=config.APP_INFO[i]['access_token_key'],
-		                      access_token_secret=config.APP_INFO[i]['access_token_secret']))
-
-		self.api = api
+		self.api_index = 0
 		
-		db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
-		cursor = db.cursor()
-		self.cursor = cursor
-		self.db = db
-		
-		self.getAllUsersRelation()
+	def get_friendids(self,
+                      user_id = None,
+                      screen_name = None,
+                      cursor = None,
+                      count = None,
+                      total_count = None,
+                      skip_status = False,
+                      include_user_entities = True):
 
+		if user_id == None and screen_name == None:
+			return
 
-	def getAllUsersRelation(self):
-		sql = "select user_id from user_all_valid" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-		except:
-			return -1
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
 
-		for ii in info:
-			try:
-				self.getFollowers(ii[0])
-				print ii[0] + " finished..."
-			except Exception as e:
-				print ii[0] + " failed"
-				print e
-				continue
+		friends = api.GetFriendIDs(user_id = user_id,
+			                      screen_name = screen_name,
+			                      cursor = cursor,
+			                      count = count,
+			                      total_count = total_count,
+			                      skip_status = skip_status,
+			                      include_user_entities = include_user_entities)
 
+		return friends
 
-	def getFollowing(self, user_id):
-		if len(user_id) <= 4:
-			file_obj = open('following/other.txt','a')
-			file_obj.write(":" + user_id)
-			file_obj.write("\n")
-		else:
-			file_obj = open('following/' + user_id[0:4] + '.txt','a')
-			file_obj.write(":" + user_id[4:])
-			file_obj.write("\n")
+	def get_friendids_paged(self,
+	                        user_id = None,
+	                        screen_name = None,
+	                        cursor = -1,
+	                        stringify_ids = False,
+	                        count = 5000):
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		friends = api.GetFriendIDsPaged(user_id = user_id,
+					                    screen_name = screen_name,
+					                    cursor = cursor,
+					                    count = count,
+					                    stringify_ids = stringify_ids)
+
+		return friends
+
+	def get_friends(self,
+                    user_id = None,
+                    screen_name = None,
+                    cursor = None,
+                    count = None,
+                    total_count = None,
+                    skip_status = False,
+                    include_user_entities = True):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		friends = api.GetFriends(user_id = user_id,
+			                     screen_name = screen_name,
+			                     cursor = cursor,
+			                     count = count,
+			                     total_count = total_count,
+			                     skip_status = skip_status,
+			                     include_user_entities = include_user_entities)
+
+		return friends
+
+	def get_friends_paged(self,
+                   		  user_id = None,
+                          screen_name = None,
+                          cursor = -1,
+                          count = 200,
+                          skip_status = False,
+                          include_user_entities = True):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		friends = api.GetFriendsPaged(user_id = user_id,
+				                      screen_name = screen_name,
+				                      cursor = cursor,
+				                      count = count,
+				                      skip_status = skip_status,
+				                      include_user_entities = include_user_entities)
+
+		return friends
+
+	def get_all_friendids(user_id = None,
+	                      screen_name = None,
+	                      skip_status = False,
+	                      include_user_entities = True)
 
 		cursor = -1
 		api_index = 0
+		sleep_count = 0
 
 		while cursor != 0:
-			api = self.api[api_index]
-			api_index = (api_index + 1) % self.apiCount
-			
+			api = ApiList[api_index]
+			api_index = (api_index + 1) / ApiCount
+
 			try:
 				out = api.GetFriendIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
 				cursor = out[0]
 				friend_list = out[2]
-				for fl in friend_list:
-					file_obj.write(str(fl) + " ")
-			except Exception as e: 
-				print e
-				if hasattr(e,"message"):
-					print e.message
-					try:
-						if e.message[0]['code'] == 88:
-							self.sleep_count = self.sleep_count + 1
-							if self.sleep_count == self.apiCount:
-								print "sleeping..."
-								time.sleep(900)
-								self.sleep_count = 0
-							continue
-					except Exception as e2:
-						print e2
-						file_obj.write("\n")
-						file_obj.close()	
-						return
-				file_obj.write("\n")
-				file_obj.close()			
-				return
+				# for fl in friend_list:
+				# 	file_obj.write(str(fl) + " ")
 
-		file_obj.write("\n")
-		file_obj.close()	
-	
-		
-	def getFollowers(self, user_id):
-		if len(user_id) <= 4:
-			file_obj = open('followers/other.txt','a')
-			file_obj.write(":" + user_id)
-			file_obj.write("\n")
-		else:
-			file_obj = open('followers/' + user_id[0:4] + '.txt','a')
-			file_obj.write(":" + user_id[4:])
-			file_obj.write("\n")
-		
+			except error.TwitterError as te:
+				if te.message[0]['code'] == 88:
+					sleep_count += 1
+					if sleep_count == ApiCount:
+						print "sleeping..."
+						sleep_count = 0
+						time.sleep(700)
+					continue
+				else:
+					continue
+			except Exception as e:
+			# 	file_obj.write("\n")
+			# 	file_obj.close()		
+				continue
+
+
+	def get_followersids(self,
+	                     user_id = None,
+	                     screen_name = None,
+	                     cursor = None,
+	                     count = None,
+	                     total_count = None,
+	                     skip_status = False,
+	                     include_user_entities = True):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		followerss = api.GetFollowersIDs(user_id = user_id,
+					                     screen_name = screen_name,
+					                     cursor = cursor,
+					                     count = count,
+					                     total_count = total_count,
+					                     skip_status = skip_status,
+					                     include_user_entities = include_user_entities)
+
+		return followerss
+
+	def get_followersids_paged(self,
+		                       user_id = None,
+		                       screen_name = None,
+		                       cursor = -1,
+		                       stringify_ids = False,
+		                       count = 5000):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		followerss = api.GetFollowersIDsPaged(user_id = user_id,
+						                 	  screen_name = screen_name,
+						                 	  cursor = cursor,
+						                 	  count = count,
+						                 	  stringify_ids = stringify_ids)
+
+		return followerss
+
+	def get_followerss(self,
+	                   user_id = None,
+	                   screen_name = None,
+	                   cursor = None,
+	                   count = None,
+	                   total_count = None,
+	                   skip_status = False,
+	                   include_user_entities = True):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		followerss = api.GetFollowerss(user_id = user_id,
+				                       screen_name = screen_name,
+				                       cursor = cursor,
+				                       count = count,
+				                       total_count = total_count,
+				                       skip_status = skip_status,
+				                       include_user_entities = include_user_entities)
+
+		return followerss
+
+	def get_followerss_paged(self,
+	                   		 user_id = None,
+	                         screen_name = None,
+	                         cursor = -1,
+	                         count = 200,
+	                         skip_status = False,
+	                         include_user_entities = True):
+
+		if user_id == None and screen_name == None:
+			return
+
+		api = ApiList[self.api_index]
+		self.api_index = (self.api_index + 1) / ApiCount
+
+		followerss = api.GetFollowerssPaged(user_id = user_id,
+					                        screen_name = screen_name,
+					                        cursor = cursor,
+					                        count = count,
+					                        skip_status = skip_status,
+					                        include_user_entities = include_user_entities)
+
+		return followerss
+
+	def get_all_followersids(user_id = None,
+		                     screen_name = None,
+		                     skip_status = False,
+		                     include_user_entities = True)
+
 		cursor = -1
-		
 		api_index = 0
 		sleep_count = 0
-		api_count = 58
 
 		while cursor != 0:
-			api = self.api[api_index]
-			api_index = (api_index + 1) % api_count
+			api = ApiList[api_index]
+			api_index = (api_index + 1) / ApiCount
 
 			try:
-				out = api.GetFollowerIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
+				out = api.GetFollowersIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
 				cursor = out[0]
 				friend_list = out[2]
-				for fl in friend_list:
-					file_obj.write(str(fl) + " ")
-			except Exception as e: 
-				print e
-				print user_id
-				if hasattr(e,"message"):
-					try:
-						if e.message[0]['code'] == 88:
-							sleep_count = sleep_count + 1
-							if sleep_count == api_count:
-								print "sleeping..."
-								time.sleep(900)
-								sleep_count = 0
-							continue
-					except Exception as e2:
-						print e2
-						file_obj.write("\n")
-						file_obj.close()	
-						return
-				file_obj.write("\n")
-				file_obj.close()	
-				return
+				# for fl in friend_list:
+				# 	file_obj.write(str(fl) + " ")
 
-		file_obj.write("\n")
-		file_obj.close()	
-
-
-	def restart(self):
-		sql = "select userid from user" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-			for ii in info:
-				self.bf.add(ii[0])
-		except:
-			return -1
-		
-		return
-
-		
-spider = RelationshipCrawler()
+			except error.TwitterError as te:
+				if te.message[0]['code'] == 88:
+					sleep_count += 1
+					if sleep_count == ApiCount:
+						print "sleeping..."
+						sleep_count = 0
+						time.sleep(700)
+					continue
+				else:
+					continue
+			except Exception as e:
+			# 	file_obj.write("\n")
+			# 	file_obj.close()		
+				continue
