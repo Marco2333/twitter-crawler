@@ -28,7 +28,7 @@ class Crawler:
 		db.set_character_set('utf8')
 		cursor = db.cursor()
 
-		i = 1
+		i = 2
 
 		sql = "insert into user_fill select * from user_fill_%s" % i
 		cursor.execute(sql)
@@ -47,7 +47,7 @@ class Crawler:
 
 	def fill_user_detail(self):
 		n = 0
-		while n < 8:
+		while n < 4:
 			n += 1
 			print str(n) + ' ...'
 			db = MySQLdb.connect(config.DB_HOST, config.DB_USER, config.DB_PASSWD, config.DB_DATABASE)
@@ -56,7 +56,7 @@ class Crawler:
 
 			global user_list
 
-			sql = "select user_id from user_userid_1 limit 200000"
+			sql = "select user_id from user_userid_2 limit 300000"
 
 			try:
 				cursor.execute(sql)
@@ -125,7 +125,7 @@ class ThreadCrawler(threading.Thread):
 				listed_count = user.listed_count if user.listed_count else 0
 				default_profile_image = 1 if user.default_profile_image else 0 
 
-				sql = """INSERT INTO user_fill_1(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
+				sql = """INSERT INTO user_fill_2(user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
 						followers_count, favourites_count, lang, protected, time_zone, verified, utc_offset, geo_enabled, listed_count,
 						is_translator, default_profile_image, profile_background_color, profile_sidebar_fill_color, profile_image_url, crawler_date) VALUES
 						('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, '%s', %d, '%s', %d, '%s', %d, %d, %d, %d,

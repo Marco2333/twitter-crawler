@@ -25,7 +25,7 @@ class Crawler:
 
 
 	def get_all_user_tweets(self):
-		sql = "select user_id from user_5" 
+		sql = "select user_id from user" 
 		try:
 			self.cursor.execute(sql)
 			info = self.cursor.fetchall()

@@ -26,7 +26,7 @@ class Crawler:
 
 
 	def get_all_user_tweets(self):
-		sql = "select user_id, statuses_count from user_increase_valid where user_id >= '3589981'" 
+		sql = "select user_id from user_famous" 
 		try:
 			self.cursor.execute(sql)
 			user_info = self.cursor.fetchall()
@@ -36,20 +36,8 @@ class Crawler:
 		i = 0
 		thread_pool = []
 		thread_num = config.THREAD_NUM
-		# length = len(user_info)
-		
-		# per_thread = length / threadNum
-		# while i < threadNum:
-		# 	if i + 1 == threadNum:
-		# 		crawThread = ThreadCrawler(user_info[i * per_thread : ], self.apis)
-		# 	else:
-		# 		crawThread = ThreadCrawler(user_info[i * per_thread : (i + 1) * per_thread], self.apis)
-			
-		# 	crawThread.start()
-		# 	threadPool.append(crawThread)
-		# 	i = i + 1
-		# print thread_num
 		user_info = list(user_info)
+
 		while i < thread_num:
 			craw_thread = ThreadCrawler(user_info, self.apis)
 			craw_thread.start()
@@ -58,19 +46,6 @@ class Crawler:
 
 		for thread in thread_pool:
 			thread.join()
-
-
-	def restart(self):
-		sql = "select user_id from user_all_valid" 
-		try:
-			self.cursor.execute(sql)
-			info = self.cursor.fetchall()
-			for ii in info:
-				return
-		except:
-			return -1
-		
-		return
 
 
 class ThreadCrawler(threading.Thread):
@@ -91,26 +66,17 @@ class ThreadCrawler(threading.Thread):
 		client = MongoClient('127.0.0.1', 27017)
 		db_name = 'twitter'
 		db = client[db_name]
-		collect1 = db['tweets_1']
-		collect2 = db['tweets_2']
-		collect3 = db['tweets_3']
+		collect = db['tweets_2']
 
 		while len(users) > 0:
 			if LOCK.acquire():
-				user = users.pop(0)
+				user_id = users.pop(0)
 				LOCK.release()
 				
-			user_id = user[0]
-			print user_id + " ..."
+			user_id = user_id[0]
 
-			count = collect1.find({'user_id': long(user_id)}).count()
+			print str(user_id) + " ..."
 
-			if (user[1] > 3000 and count > 2800) or (user[1] < 3000 and count > user[1] - 46):
-				print count
-				print 'jumping .......'
-				continue
-
-			collect1.delete_many({'user_id': long(user_id)})
 			flag  = True
 			tweets = [0]
 			
@@ -202,7 +168,7 @@ class ThreadCrawler(threading.Thread):
 						'withheld_scope': tt.withheld_scope, #String
 					}
 					try:
-						collect3.insert_one(tweet)
+						collect.insert_one(tweet)
 					except Exception as e:
 						print e
 	

@@ -5,7 +5,7 @@ ApiList = []
 ApiCount = len(APP_INFO)
 
 for i in range(ApiCount):
-	ApiList.append(twitter.Api(consumer_key = APP_INFO[i]['consumer_key'],
+	ApiList.append(Api(consumer_key = APP_INFO[i]['consumer_key'],
                       consumer_secret = APP_INFO[i]['consumer_secret'],
                       access_token_key = APP_INFO[i]['access_token_key'],
                       access_token_secret = APP_INFO[i]['access_token_secret']))

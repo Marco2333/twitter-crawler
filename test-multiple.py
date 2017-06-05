@@ -53,14 +53,14 @@ class Crawler:
 		# for i in users:
 		# 	print i
 		
-		i = 94
+		i = 715
 		api_index = 0
 		api_count = 58
 		sleep_count = 0
-		with open("c:\\relationships","a") as f:
-			while i < 131:
-				j = i + 1
+		with open("c:\\relationships%d" % i,"a") as f:
+			while i < 1062:
 				relationships = []
+				j = i + 1
 				while j < len(users):
 					api_index = (api_index + 1) % api_count
 					try:
@@ -81,7 +81,7 @@ class Crawler:
 								else:
 
 									print e.message
-								
+									
 							except Exception as e2:
 								print e2
 								print e2.message
@@ -104,6 +104,7 @@ class Crawler:
 					f.write("\t")
 					f.write(relationship[1])
 					f.write("\n")
+			
 		return
 
 		tweets = api[0].GetUserTimeline(screen_name = 'marcohan2333',  count = 2)

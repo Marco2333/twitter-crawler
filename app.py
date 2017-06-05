@@ -14,8 +14,7 @@ from pybloom import BloomFilter
 class Crawler:
 	def __init__(self):	
 
-
-
+	
 		headers = {    
 			'User-Agent':config.USER_AGENT
 		}   

@@ -53,12 +53,12 @@ class Crawler:
 		# for i in users:
 		# 	print i
 		
-		i = 94
+		i = 234
 		api_index = 0
 		api_count = 58
 		sleep_count = 0
-		with open("c:\\relationships","a") as f:
-			while i < 131:
+		with open("c:\\relationships%d" % i,"a") as f:
+			while i < 331:
 				j = i + 1
 				relationships = []
 				while j < len(users):
@@ -81,11 +81,10 @@ class Crawler:
 								else:
 
 									print e.message
-								
+									
 							except Exception as e2:
 								print e2
 								print e2.message
-								
 						else:
 							print e
 							

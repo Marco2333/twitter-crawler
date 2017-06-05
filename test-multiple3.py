@@ -53,14 +53,14 @@ class Crawler:
 		# for i in users:
 		# 	print i
 		
-		i = 94
+		i = 1593
 		api_index = 0
 		api_count = 58
 		sleep_count = 0
-		with open("c:\\relationships","a") as f:
-			while i < 131:
-				j = i + 1
+		with open("c:\\relationships%d" % i,"a") as f:
+			while i < 2124:
 				relationships = []
+				j = i + 1
 				while j < len(users):
 					api_index = (api_index + 1) % api_count
 					try:
@@ -79,9 +79,9 @@ class Crawler:
 									flag = True
 									continue
 								else:
-
+									print users[i] + "  " + users[j]
 									print e.message
-								
+									
 							except Exception as e2:
 								print e2
 								print e2.message
@@ -98,7 +98,6 @@ class Crawler:
 				print "finished %d users" % i
 				i += 1
 				# write into file
-				
 				for relationship in relationships:
 					f.write(relationship[0])
 					f.write("\t")
