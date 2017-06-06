@@ -5,9 +5,20 @@ from config import THREAD_NUM
 from twitter import error
 from api import Api, API_COUNT
 
+
 class RelationCrawler:
 	api = Api().get_api
-		
+	
+	def show_friendship(source_user_id, source_screen_name, target_user_id, target_screen_name):
+		if not source_user_id and not source_screen_name:
+			return None
+
+		if not target_user_id and not target_screen_name:
+			return None
+
+		return self.api().ShowFriendship(source_user_id, source_screen_name, target_user_id, target_screen_name)
+
+
 	def get_friendids(self,
                       user_id = None,
                       screen_name = None,

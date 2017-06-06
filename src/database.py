@@ -15,6 +15,13 @@ class Mysql:
 		self.cursor.execute(sql)
 		self.db.commit()
 
+	def fetchall(sql):
+		cursor.execute(sql)
+		res = cursor.fetchall()
+
+		return res
+
+
 	def close(self):
 		self.db.close()
 
