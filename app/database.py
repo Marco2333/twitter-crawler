@@ -5,19 +5,19 @@ from pymongo import MongoClient
 
 class Mysql:
 	def connect(self):
-		db = MySQLdb.connect(MYSQL.DB_HOST, MYSQL.DB_USER, MYSQL.DB_PASSWD, MYSQL.DB_DATABASE)
+		db = MySQLdb.connect(MYSQL['DB_HOST'], MYSQL['DB_USER'], MYSQL['DB_PASSWD'], MYSQL['DB_DATABASE'])
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db
 		return db
 
-	def execute(sql):
+	def execute(self, sql):
 		self.cursor.execute(sql)
 		self.db.commit()
 
-	def fetchall(sql):
-		cursor.execute(sql)
-		res = cursor.fetchall()
+	def fetchall(self, sql):
+		self.cursor.execute(sql)
+		res = self.cursor.fetchall()
 
 		return res
 

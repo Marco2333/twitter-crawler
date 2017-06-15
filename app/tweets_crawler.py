@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import time
 import threading
 
@@ -8,7 +9,7 @@ from database import MongoDB
 
 
 class TweetsCrawler:
-	api = Api().get_api
+	get_api = Api().get_api
 		
 	def get_user_timeline(self,
 						  user_id = None,
@@ -23,10 +24,10 @@ class TweetsCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return  self.api().GetUserTimeline(user_id = user_id,	screen_name = screen_name, 
-										   since_id = since_id, max_id = max_id, count = count,
-										   include_rts = include_rts, trim_user = trim_user,
-										   exclude_replies = exclude_replies)
+		return  self.get_api().GetUserTimeline(user_id = user_id,	screen_name = screen_name, 
+											   since_id = since_id, max_id = max_id, count = count,
+											   include_rts = include_rts, trim_user = trim_user,
+											   exclude_replies = exclude_replies)
 
 
 	def get_user_all_timeline(user_id = None,
@@ -49,15 +50,15 @@ class TweetsCrawler:
 		while len(tweets) > 0:
 			try:
 				if flag:
-					tweets = api().GetUserTimeline(user_id = user_id, screen_name = screen_name, 
-												   include_rts = include_rts, exclude_replies = exclude_replies,
-						  	  					   trim_user = True, count = 200)
+					tweets = get_api().GetUserTimeline(user_id = user_id, screen_name = screen_name, 
+													   include_rts = include_rts, exclude_replies = exclude_replies,
+							  	  					   trim_user = True, count = 200)
 					flag = False
 
 				else:
-					tweets = api().GetUserTimeline(user_id = user_id, screen_name = screen_name,
-												   include_rts = include_rts, exclude_replies = exclude_replies,
-						 						   trim_user = True, count = 200, max_id = tweets[-1].id - 1)
+					tweets = get_api().GetUserTimeline(user_id = user_id, screen_name = screen_name,
+													   include_rts = include_rts, exclude_replies = exclude_replies,
+							 						   trim_user = True, count = 200, max_id = tweets[-1].id - 1)
 
 			except error.TwitterError as te:
 				if te.message[0]['code'] == 88:
@@ -119,22 +120,30 @@ class TweetsCrawler:
 
 		while i < threadNum:
 			if i + 1 == threadNum:
-				craw_thread = threading.Thread(target = get_users_timeline_thread, args = (user_list[i * per_thread : ], collect_name, search_type, include_rts, exclude_replies,))
+				craw_thread = threading.Thread(target = self.get_users_timeline_thread, args = (user_list[i * per_thread : ], collect_name, search_type, include_rts, exclude_replies,))
 			else:
-				craw_thread = threading.Thread(target = get_users_timeline_thread, args = (user_list[i * per_thread : (i + 1) * per_thread], collect_name, search_type, include_rts, exclude_replies,))
+				craw_thread = threading.Thread(target = self.get_users_timeline_thread, args = (user_list[i * per_thread : (i + 1) * per_thread], collect_name, search_type, include_rts, exclude_replies,))
 			
 			craw_thread.start()
 			thread_pool.append(craw_thread)
+
+			i += 1
 
 		for thread in thread_pool:
 			thread.join()
 
 
-	def get_users_timeline_thread(user_list = [], collect_name = "tweets", search_type = "user_id", include_rts = True, exclude_replies = False):
+	def get_users_timeline_thread(self,
+								  user_list = [], 
+								  collect_name = "tweets", 
+								  search_type = "user_id", 
+								  include_rts = True, 
+								  exclude_replies = False):
+	
 		while len(user_list) > 0:
 			user_id = user_list.pop(0)
 
-			if search_type = "screen_name":
+			if search_type == "screen_name":
 				self.get_user_all_timeline(screen_name = user_id,
 									       collect_name = collect_name,
 						  	  		       include_rts = include_rts, 

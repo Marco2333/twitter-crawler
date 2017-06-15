@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import time
 import threading
 
@@ -7,16 +8,67 @@ from api import Api, API_COUNT
 
 
 class RelationCrawler:
-	api = Api().get_api
+	get_api = Api().get_api
 	
-	def show_friendship(source_user_id, source_screen_name, target_user_id, target_screen_name):
+	'''
+	获取用户的关系信息
+	'''
+	def show_friendship(source_user_id, 
+						source_screen_name, 
+						target_user_id, 
+						target_screen_name):
+
 		if not source_user_id and not source_screen_name:
 			return None
 
 		if not target_user_id and not target_screen_name:
 			return None
 
-		return self.api().ShowFriendship(source_user_id, source_screen_name, target_user_id, target_screen_name)
+		return self.get_api().ShowFriendship(source_user_id, 
+											 source_screen_name, 
+											 target_user_id, 
+											 target_screen_name)
+
+	'''
+	保存用户关系的信息
+	'''
+	def save_friendship(source_user_id, 
+						source_screen_name, 
+						target_user_id, 
+						target_screen_name):
+
+		if not source_user_id and not source_screen_name:
+			return None
+
+		if not target_user_id and not target_screen_name:
+			return None
+
+		sleep_count = 0
+
+		while True:
+			try:
+				relation = self.get_api().ShowFriendship(source_user_id, 
+												 		source_screen_name, 
+												 		target_user_id, 
+												 		target_screen_name)
+			except error.TwitterError as te:
+				if te.message[0]['code'] == 88:
+					sleep_count += 1
+
+					if sleep_count == API_COUNT:
+						print "sleeping..."
+						sleep_count = 0
+						time.sleep(700)
+					continue
+				else:
+					print te
+					return None
+
+			except Exception as e:
+				print e
+				return None
+
+			return relation
 
 
 	def get_friendids(self,
@@ -28,10 +80,10 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFriendIDs(user_id = user_id,
-				                       screen_name = screen_name,
-				                       cursor = cursor,
-				                       total_count = total_count)
+		return self.get_api().GetFriendIDs(user_id = user_id,
+					                       screen_name = screen_name,
+					                       cursor = cursor,
+					                       total_count = total_count)
 
 
 	def get_friendids_paged(self,
@@ -44,11 +96,11 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFriendIDsPaged(user_id = user_id,
-					                        screen_name = screen_name,
-					                        cursor = cursor,
-					                        count = count,
-					                        stringify_ids = stringify_ids)
+		return self.get_api().GetFriendIDsPaged(user_id = user_id,
+						                        screen_name = screen_name,
+						                        cursor = cursor,
+						                        count = count,
+						                        stringify_ids = stringify_ids)
 
 
 	def get_friends(self,
@@ -62,12 +114,12 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFriends(user_id = user_id,
-			                         screen_name = screen_name,
-			                  	     cursor = cursor,
-			                  	     total_count = total_count,
-			                  	     skip_status = skip_status,
-			                  	     include_user_entities = include_user_entities)
+		return self.get_api().GetFriends(user_id = user_id,
+				                         screen_name = screen_name,
+				                  	     cursor = cursor,
+				                  	     total_count = total_count,
+				                  	     skip_status = skip_status,
+				                  	     include_user_entities = include_user_entities)
 		
 
 	def get_friends_paged(self,
@@ -81,15 +133,17 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFriendsPaged(user_id = user_id,
-				                       	  screen_name = screen_name,
-				                       	  cursor = cursor,
-				                       	  count = count,
-				                       	  skip_status = skip_status,
-				                       	  include_user_entities = include_user_entities)
+		return self.get_api().GetFriendsPaged(user_id = user_id,
+					                       	  screen_name = screen_name,
+					                       	  cursor = cursor,
+					                       	  count = count,
+					                       	  skip_status = skip_status,
+					                       	  include_user_entities = include_user_entities)
 
 
-	def get_all_friendids(user_id = None, screen_name = None)
+	def get_all_friendids(self, 
+						  user_id = None, 
+						  screen_name = None):
 
 		if user_id == None and screen_name == None:
 			return None
@@ -101,7 +155,7 @@ class RelationCrawler:
 
 		while cursor != 0:
 			try:
-				out = api().GetFriendIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
+				out = get_api().GetFriendIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
 				cursor = out[0]
 				friend_list = out[2]
 			except error.TwitterError as te:
@@ -128,7 +182,7 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFollowerIDs(user_id = user_id,
+		return self.get_api().GetFollowerIDs(user_id = user_id,
 					                     screen_name = screen_name,
 					              	     cursor = cursor,
 					               	     total_count = total_count)
@@ -144,11 +198,11 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFollowerIDsPaged(user_id = user_id,
-						                 	  screen_name = screen_name,
-						                 	  cursor = cursor,
-						                 	  count = count,
-						                 	  stringify_ids = stringify_ids)
+		return self.get_api().GetFollowerIDsPaged(user_id = user_id,
+							                 	  screen_name = screen_name,
+							                 	  cursor = cursor,
+							                 	  count = count,
+							                 	  stringify_ids = stringify_ids)
 
 
 	def get_followers(self,
@@ -162,12 +216,12 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFollowers(user_id = user_id,
-				                       screen_name = screen_name,
-				                       cursor = cursor,
-				                       total_count = total_count,
-				                       skip_status = skip_status,
-				                       include_user_entities = include_user_entities)
+		return self.get_api().GetFollowers(user_id = user_id,
+					                       screen_name = screen_name,
+					                       cursor = cursor,
+					                       total_count = total_count,
+					                       skip_status = skip_status,
+					                       include_user_entities = include_user_entities)
 
 
 	def get_followers_paged(self,
@@ -181,15 +235,15 @@ class RelationCrawler:
 		if user_id == None and screen_name == None:
 			return None
 
-		return self.api().GetFollowersPaged(user_id = user_id,
-					                        screen_name = screen_name,
-					                        cursor = cursor,
-					                        count = count,
-					                        skip_status = skip_status,
-					                        include_user_entities = include_user_entities)
+		return self.get_api().GetFollowersPaged(user_id = user_id,
+						                        screen_name = screen_name,
+						                        cursor = cursor,
+						                        count = count,
+						                        skip_status = skip_status,
+						                        include_user_entities = include_user_entities)
 
 
-	def get_all_followersids(user_id = None, screen_name = None)
+	def get_all_followersids(self, user_id = None, screen_name = None):
 
 		if user_id == None and screen_name == None:
 			return None
@@ -201,7 +255,7 @@ class RelationCrawler:
 
 		while cursor != 0:
 			try:
-				out = api().GetFollowersIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
+				out = get_api().GetFollowersIDsPaged(user_id = user_id, cursor = cursor, count = 5000)
 				cursor = out[0]
 				friend_list = out[2]
 
