@@ -1,3 +1,5 @@
+import threading
+
 from app.database import Mysql
 from app.basicinfo_crawler import BasicinfoCrawler
 from app.tweets_crawler import TweetsCrawler
@@ -93,7 +95,7 @@ def get_users_relationship(user_list):
 		
 		craw_thread.start()
 		thread_pool.append(craw_thread)
-		
+
 		i += 1
 
 	for thread in thread_pool:
@@ -103,14 +105,21 @@ def get_users_relationship(user_list):
 def get_users_relation_thread(user_list, all_users, start_index):
 	length = len(user_list)
 	all_length = len(all_users)
+	table_name = 'relation'
 
 	mysql = Mysql()
 	mysql.connect()
 
 	i = 0
 	for i in range(length):
-		for j in range(start_index + i + 1, length):
+		for j in range(start_index + i + 1, all_length):
+
 			relation = relation_crawler.save_friendship(source_user_id = user_list[i], target_user_id = all_users[j])
+			fb = relation['relationship']['source']['followed_by']
+			fl = relation['relationship']['source']['following']
+			sql =  """INSERT INTO %s (source_user_id, target_user_id, followed_by, following) VALUES ('%s', '%s', \
+			'%s', '%s')""" % (table_name, user_list[i], all_users[j], str(fb), str(fl)) 
+
 			try:
 				mysql.execute(sql)
 			except Exception as e:
@@ -122,7 +131,7 @@ if __name__ == "__main__":
 	mysql = Mysql()
 	mysql.connect()
 
-	sql = "select userid from standardusers limit 6"
+	sql = "select userid from standardusers"
 
 	try:
 		user_list = mysql.fetchall(sql)
@@ -130,5 +139,4 @@ if __name__ == "__main__":
 		print e
 
 	user_list = map(lambda x: x[0], user_list)
-
-	# get_users_relationship(user_list)
+	get_users_relationship(user_list)

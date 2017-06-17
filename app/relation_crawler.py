@@ -13,7 +13,8 @@ class RelationCrawler:
 	'''
 	获取用户的关系信息
 	'''
-	def show_friendship(source_user_id, 
+	def show_friendship(self,
+						source_user_id, 
 						source_screen_name, 
 						target_user_id, 
 						target_screen_name):
@@ -32,10 +33,11 @@ class RelationCrawler:
 	'''
 	保存用户关系的信息
 	'''
-	def save_friendship(source_user_id, 
-						source_screen_name, 
-						target_user_id, 
-						target_screen_name):
+	def save_friendship(self,
+						source_user_id = None, 
+						source_screen_name = None, 
+						target_user_id = None, 
+						target_screen_name = None):
 
 		if not source_user_id and not source_screen_name:
 			return None
@@ -52,6 +54,7 @@ class RelationCrawler:
 												 		target_user_id, 
 												 		target_screen_name)
 			except error.TwitterError as te:
+				print te
 				if te.message[0]['code'] == 88:
 					sleep_count += 1
 
