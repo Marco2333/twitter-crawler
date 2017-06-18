@@ -30,6 +30,9 @@ class BasicinfoCrawler:
 											 count = count, 
 											 include_entities = include_entities)
 
+	
+
+
 	'''
 	获取单个用户的信息
 	'''
@@ -45,23 +48,49 @@ class BasicinfoCrawler:
 									  screen_name = screen_name, 
 									  include_entities = include_entities)
 
-  	'''
+
+	'''
 	获取单个用户的信息并保存
 	'''
-  	def get_user_save(self,
-  					  user_id = None, 
-  					  table_name = "user_task",
-  					  screen_name = None, 
-  					  include_entities = True):
+	def get_user_save(self,
+					  user_id = None, 
+					  table_name = "user_task",
+					  screen_name = None, 
+					  include_entities = True):
 
-  		if user_id == None and screen_name == None:
-  			return None
+		if user_id == None and screen_name == None:
+			return None
 
-  		user = self.get_api().GetUser(user_id = user_id,	
-	  						   		  screen_name = screen_name, 
-	  						   		  include_entities = include_entities)
+		sleep_count = 0
 
-  		self.save_user(user, table_name)
+		while True:
+			try:
+				user = self.get_api().GetUser(user_id = user_id,	
+			  						   		  screen_name = screen_name, 
+			  						   		  include_entities = include_entities)
+
+			except error.TwitterError as te:
+				print te
+				if te.message[0]['code'] == 88:
+					sleep_count += 1
+
+					if sleep_count == API_COUNT:
+						print "sleeping..."
+						sleep_count = 0
+						time.sleep(500)						
+					continue
+
+				else:
+					print te
+					return None
+
+			except Exception as e:
+				print e
+				return None
+
+			break
+
+		self.save_user(user, table_name)
 
 	'''
 	获取多个用户的信息，并存入数据库中

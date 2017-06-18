@@ -74,6 +74,20 @@ def get_users_tweets_from_db(sql, collect_name = "tweets", search_type = "screen
 
 
 def get_users_relationship(user_list):
+	mysql = Mysql()
+	mysql.connect()
+
+	sql = "select * from relation"
+
+	try:
+		cur_list = mysql.fetchall(sql)
+	except Exception as e:
+		print e
+
+	s = set()
+	for term in cur_list:
+		s.add(term[0] + " " + term[1])
+
 	user_list = list(set(user_list))
 	length = len(user_list)
 	if length == 0:
@@ -88,10 +102,10 @@ def get_users_relationship(user_list):
 	while i < thread_num:
 		if i + 1 == thread_num:
 			craw_thread = threading.Thread(target = get_users_relation_thread, 
-							args = (user_list[i * per_thread : ], user_list, i * per_thread,))
+							args = (user_list[i * per_thread : ], user_list, i * per_thread, s, ))
 		else:
 			craw_thread = threading.Thread(target = get_users_relation_thread, 
-							args = (user_list[i * per_thread : (i + 1) * per_thread], user_list, i * per_thread,))
+							args = (user_list[i * per_thread : (i + 1) * per_thread], user_list, i * per_thread, s, ))
 		
 		craw_thread.start()
 		thread_pool.append(craw_thread)
@@ -102,7 +116,7 @@ def get_users_relationship(user_list):
 		thread.join()
 
 
-def get_users_relation_thread(user_list, all_users, start_index):
+def get_users_relation_thread(user_list, all_users, start_index, s):
 	length = len(user_list)
 	all_length = len(all_users)
 	table_name = 'relation'
@@ -110,14 +124,26 @@ def get_users_relation_thread(user_list, all_users, start_index):
 	mysql = Mysql()
 	mysql.connect()
 
+	# print str(len(user_list)) + "|" + str(len(all_users)) + "|" + str(start_index) + "**"
+
 	i = 0
 	for i in range(length):
 		for j in range(start_index + i + 1, all_length):
 
-			relation = relation_crawler.save_friendship(source_user_id = user_list[i], target_user_id = all_users[j])
-			fb = relation['relationship']['source']['followed_by']
-			fl = relation['relationship']['source']['following']
-			sql =  """INSERT INTO %s (source_user_id, target_user_id, followed_by, following) VALUES ('%s', '%s', \
+			if user_list[i] + " " + all_users[j] in s:
+				continue
+
+			try:
+				relation = relation_crawler.save_friendship(source_user_id = user_list[i], target_user_id = all_users[j])
+				fb = relation['relationship']['source']['followed_by']
+				fl = relation['relationship']['source']['following']
+			except Exception as e:
+				print e
+				print user_list[i]
+				print all_users[j]
+				continue
+
+			sql = """INSERT INTO %s (source_user_id, target_user_id, followed_by, following) VALUES ('%s', '%s', \
 			'%s', '%s')""" % (table_name, user_list[i], all_users[j], str(fb), str(fl)) 
 
 			try:
@@ -139,4 +165,5 @@ if __name__ == "__main__":
 		print e
 
 	user_list = map(lambda x: x[0], user_list)
+
 	get_users_relationship(user_list)
