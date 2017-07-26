@@ -184,16 +184,16 @@ class TweetsCrawler:
 		thread_pool = []
 		per_thread = length / THREAD_NUM
 
-		while i < threadNum:
-			if i + 1 == threadNum:
-				craw_thread = threading.Thread(target = self.get_users_timeline_thread, 
+		while i < THREAD_NUM:
+			if i + 1 == THREAD_NUM:
+				crawler_thread = threading.Thread(target = self.get_users_timeline_thread, 
 					args = (user_list[i * per_thread : ], collect_name, search_type, include_rts, exclude_replies,))
 			else:
-				craw_thread = threading.Thread(target = self.get_users_timeline_thread, 
+				crawler_thread = threading.Thread(target = self.get_users_timeline_thread, 
 					args = (user_list[i * per_thread : (i + 1) * per_thread], collect_name, search_type, include_rts, exclude_replies,))
 			
-			craw_thread.start()
-			thread_pool.append(craw_thread)
+			crawler_thread.start()
+			thread_pool.append(crawler_thread)
 
 			i += 1
 

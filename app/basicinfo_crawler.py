@@ -83,12 +83,12 @@ class BasicinfoCrawler:
 		
 		while i < THREAD_NUM:
 			if i + 1 == THREAD_NUM:
-				craw_thread = threading.Thread(target = self.get_users_thread, args = (user_list[i * per_thread : ], table_name, search_type,))
+				crawler_thread = threading.Thread(target = self.get_users_thread, args = (user_list[i * per_thread : ], table_name, search_type,))
 			else:
-				craw_thread = threading.Thread(target = self.get_users_thread, args = (user_list[i * per_thread : (i + 1) * per_thread], table_name, search_type,))
+				crawler_thread = threading.Thread(target = self.get_users_thread, args = (user_list[i * per_thread : (i + 1) * per_thread], table_name, search_type,))
 			
-			craw_thread.start()
-			thread_pool.append(craw_thread)
+			crawler_thread.start()
+			thread_pool.append(crawler_thread)
 
 			i += 1
 

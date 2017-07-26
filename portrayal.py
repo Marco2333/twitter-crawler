@@ -4,7 +4,7 @@ import threading
 
 from pybloom import BloomFilter
 
-from app.database import Mysql, MongoDB
+from app.database import MongoDB
 
 from app.basicinfo_crawler import BasicinfoCrawler
 from app.tweets_crawler import TweetsCrawler
@@ -23,12 +23,17 @@ relation_crawler = RelationCrawler()
 '''
 USER_LIST = []
 USER_LIST_TEMP = []
-BLOOM_FILTER = BloomFilter(capacity = 2500000, error_rate = 0.001)
+BLOOM_FILTER = BloomFilter(capacity = 250000, error_rate = 0.001)
 
+
+'''
+扩展线程，根据朋友关系抓取用户id，保存在全局数组中，由其他线程根据id抓取基础信息和推文信息
+'''
 def extension_thread():
 	i = 0
+	total = 200000
 
-	while i < 2000000:
+	while i < total:
 		user_id = USER_LIST_TEMP.pop(0)
 		cursor = -1
 
@@ -46,15 +51,22 @@ def extension_thread():
 				
 				if u not in BLOOM_FILTER:
 					USER_LIST_TEMP.append(u)
-					BLOOM_FILTER .add(u)
-
-					i += 1
+					BLOOM_FILTER.add(u)
 
 					if LOCK.acquire():
 						USER_LIST.append(u)
 						LOCK.release()
+					
+					i += 1
+
+					if i >= total:
+						BLOOM_FILTER = None
+						return
 
 
+'''
+画像线程，根据抓取到的基础信息和推文信息，作用户画像
+'''
 def portrayal_thread():
 	db = MongoDB().connect()
 	collect = db['user_portrayal']
@@ -74,7 +86,9 @@ def portrayal_thread():
 		collect.insert_one(res)
 
 
-
+'''
+根据用户id获取用户基础信息和推文信息
+'''
 def get_user_info(user_id):
 	try:
 		user = basicinfo_crawler.get_user(user_id = user_id)
@@ -116,6 +130,10 @@ def get_user_info(user_id):
 
 	return user
 
+
+'''
+判断用户是否可用
+'''
 def judge_available(user):
 	return user.lang == 'en' and user.statuses_count > 500 and user.protected == False and user.followers_count > 500
 
