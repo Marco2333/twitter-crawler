@@ -7,19 +7,20 @@ from twitter import error
 from api import Api, API_COUNT
 from decorator import generate_decorator
 
+handle_exception = generate_decorator(300)
+
 class RelationCrawler:
 	get_api = Api().get_api
-	handle_exception = generate_decorator(800)
 	
 
 	'''
 	获取用户关系信息
 	'''
 	def show_friendship(self,
-						source_user_id, 
-						source_screen_name, 
-						target_user_id, 
-						target_screen_name):
+						source_user_id = None, 
+						source_screen_name = None, 
+						target_user_id = None, 
+						target_screen_name = None):
 
 		if not source_user_id and not source_screen_name:
 			return None
@@ -42,7 +43,7 @@ class RelationCrawler:
 							  target_user_id = None, 
 							  target_screen_name = None):
 
-		wrapper_func = self.handle_exception(self.show_friendship)
+		wrapper_func = handle_exception(self.show_friendship)
 		relation = wrapper_func(source_user_id, source_screen_name, target_user_id, target_screen_name)
 		
 		return relation
@@ -96,7 +97,7 @@ class RelationCrawler:
 		                          stringify_ids = False,
 		                          count = 5000):
 
-		wrapper_func = self.handle_exception(self.get_friendids_paged)
+		wrapper_func = handle_exception(self.get_friendids_paged)
 		friendids = wrapper_func(user_id = user_id,
 								screen_name = screen_name,
 								cursor = cursor,
@@ -216,7 +217,7 @@ class RelationCrawler:
 		                            stringify_ids = False,
 		                            count = 5000):
 
-		wrapper_func = self.handle_exception(self.get_followerids_paged)
+		wrapper_func = handle_exception(self.get_followerids_paged)
 		followerids = wrapper_func(user_id = user_id,
 								   screen_name = screen_name,
 								   cursor = cursor,
@@ -288,3 +289,8 @@ class RelationCrawler:
 
 			cursor = out[0]
 			follower_list = out[2]
+
+
+if __name__ == '__main__':
+	rc = RelationCrawler()
+	print rc.show_friendship_sleep(source_screen_name="mrmarcohan", target_screen_name="taylorswift13")

@@ -8,9 +8,10 @@ from api import Api, API_COUNT
 from database import MongoDB
 from decorator import generate_decorator
 
+handle_exception = generate_decorator(300)
+
 class TweetsCrawler:
 	get_api = Api().get_api
-	handle_exception = generate_decorator(300)
 
 	'''
 	获取用户推文信息，最多返回200条
@@ -182,6 +183,7 @@ class TweetsCrawler:
 
 		i = 0
 		thread_pool = []
+		length = len(user_list)
 		per_thread = length / THREAD_NUM
 
 		while i < THREAD_NUM:
@@ -230,9 +232,98 @@ class TweetsCrawler:
 
 
 	'''
+	根据推文ID获取推文信息
+	'''
+	def get_status(self,
+				   status_id, 
+				   trim_user = True, 
+				   include_entities = True):
+
+		if status_id == None:
+			return None
+
+		return  self.get_api().GetStatus(status_id = status_id,	
+										 trim_user = trim_user, 
+										 include_my_retweet = False,
+										 include_entities = include_entities)
+
+
+	'''
+	根据推文ID获取所有推文信息
+	'''
+	def get_all_status(self,
+					   status_list = [],
+					   collect_name = 'status',
+				       trim_user = True,
+				       include_entities = True):
+
+		if len(status_list) == 0:
+			return
+
+		i = 0
+		thread_pool = []
+		length = len(status_list)
+		per_thread = length / THREAD_NUM
+
+		while i < THREAD_NUM:
+			if i + 1 == THREAD_NUM:
+				crawler_thread = threading.Thread(target = self.get_all_status_thread, 
+					args = (status_list[i * per_thread : ], collect_name, trim_user, include_entities,))
+			else:
+				crawler_thread = threading.Thread(target = self.get_all_status_thread, 
+					args = (status_list[i * per_thread : (i + 1) * per_thread], collect_name, trim_user, include_entities,))
+			
+			crawler_thread.start()
+			thread_pool.append(crawler_thread)
+
+			i += 1
+
+		for t in thread_pool:
+			t.join()
+
+
+	'''
+	线程：根据推文ID获取所有推文信息
+	'''
+	def get_all_status_thread(self,
+						      status_list = [],
+						      collect_name = 'status',
+						      trim_user = True,
+						      include_entities = True):
+
+		wrapper_func = handle_exception(self.get_status)
+
+		db = MongoDB().connect()
+		collect = db[collect_name]
+
+		n = 0
+		while len(status_list) > 0:
+			n += 1
+
+			if n % 1000 == 0:
+				print n
+
+			status_id = status_list.pop(0)
+			status_obj = wrapper_func(status_id)
+
+			status = self.tweetobj_to_dict(status_obj)
+
+			if not status:
+				continue
+
+			try:
+				collect.insert_one(status)
+			except Exception as e:
+				continue
+	
+
+	'''
 	将推文对象转换为字典类型
 	'''
 	def tweetobj_to_dict(self, tt):
+		if tt == None:
+			return None
+
 		tweet = {
 			'coordinates': tt.coordinates,  # Coordinates
 			'created_at': tt.created_at, # String
@@ -256,3 +347,8 @@ class TweetsCrawler:
 		}
 
 		return tweet
+
+
+if __name__ == '__main__':
+	ts = TweetsCrawler()
+	print ts.get_status(str(255819945940758528))

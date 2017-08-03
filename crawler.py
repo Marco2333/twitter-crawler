@@ -107,7 +107,21 @@ def filter():
 			'listed_count': u.listed_count, 'default_profile_image': u.default_profile_image, 'profile_background_color': u.profile_background_color,
 			'profile_image_url': u.profile_image_url, 'profile_banner_url': u.profile_banner_url}})
 
+
+def get_tweet_list_by_statusid(file_name):
+	file = open(file_name)
+
+	tweet_list = []
+	while 1:
+	    lines = file.readlines(100000)
+	    if not lines:
+	        break
+	    for line in lines:
+	        tweet_list.append(line.strip())
+
+	tweets_crawler.get_all_status(tweet_list, 'tweets_100w')
 		
+
 if __name__ == "__main__":
 	# db = MongoDB().connect()
-	# collect = db['typical']
+	get_tweet_list_by_statusid('./file/tweet_150w.txt')
