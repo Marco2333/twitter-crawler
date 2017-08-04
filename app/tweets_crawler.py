@@ -49,7 +49,7 @@ class TweetsCrawler:
 						  	  include_rts = True, 
 						  	  exclude_replies = False):
 
-		if users == None and screen_name == None:
+		if user_id == None and screen_name == None:
 			return None
 
 		flag = True
@@ -351,4 +351,4 @@ class TweetsCrawler:
 
 if __name__ == '__main__':
 	ts = TweetsCrawler()
-	print ts.get_status(str(255819945940758528))
+	print ts.get_status(259255676642156544)

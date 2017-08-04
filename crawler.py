@@ -93,21 +93,9 @@ def get_users_tweets_from_db(sql, collect_name = "tweets", search_type = "screen
 	tweets_crawler.get_all_users_timeline(user_list, collect_name = collect_name, search_type = search_type)
 
 
-def filter():
-	db = MongoDB().connect()
-	collect = db['typical']
-
-	users = collect.find()
-
-	res = []
-	for item in users:
-		u = basicinfo_crawler.get_user(user_id = item['_id'])
-		collect.update({"_id": item['_id']}, {'$set': {'created_at': u.created_at, 'lang': u.lang, 
-			'protected': u.protected, 'time_zone': u.time_zone, 'utc_offset': u.utc_offset,
-			'listed_count': u.listed_count, 'default_profile_image': u.default_profile_image, 'profile_background_color': u.profile_background_color,
-			'profile_image_url': u.profile_image_url, 'profile_banner_url': u.profile_banner_url}})
-
-
+'''
+根据推文ID抓取推文，存放在数据库中（推文id存放在file_name中，每行一条）
+'''
 def get_tweet_list_by_statusid(file_name):
 	file = open(file_name)
 
@@ -122,6 +110,6 @@ def get_tweet_list_by_statusid(file_name):
 	tweets_crawler.get_all_status(tweet_list, 'tweets_100w')
 		
 
+
 if __name__ == "__main__":
-	# db = MongoDB().connect()
 	get_tweet_list_by_statusid('./file/tweet_150w.txt')

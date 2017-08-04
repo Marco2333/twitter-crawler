@@ -99,10 +99,10 @@ class RelationCrawler:
 
 		wrapper_func = handle_exception(self.get_friendids_paged)
 		friendids = wrapper_func(user_id = user_id,
-								screen_name = screen_name,
-								cursor = cursor,
-								stringify_ids = stringify_ids,
-								count = count)
+								 screen_name = screen_name,
+								 cursor = cursor,
+								 stringify_ids = stringify_ids,
+								 count = count)
 
 		return friendids
 	
@@ -293,4 +293,4 @@ class RelationCrawler:
 
 if __name__ == '__main__':
 	rc = RelationCrawler()
-	print rc.show_friendship_sleep(source_screen_name="mrmarcohan", target_screen_name="taylorswift13")
+	print rc.get_all_followersids(screen_name = 'mrmarcohan')
