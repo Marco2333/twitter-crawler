@@ -16,12 +16,22 @@ class BasicinfoCrawler:
 
 	'''
 	获取与term相关的用户信息
+
+	Parameters:	
+		term – Term to search by.
+		page – Page of results to return. Default is 1 [Optional]
+		count – Number of results to return. Default is 20 [Optional]
+		include_entities – If True, each tweet will include a node called “entities,”. 
+		This node offers a variety of metadata about the tweet in a discrete structure, 
+		including: user_mentions, urls, and hashtags. [Optional]
+	Returns:	
+		A sequence of twitter.User instances, one for each message containing the term
 	'''
-	def get_user_search(self, 
-						term = None, 
-						page = 1, 
-						count = 20, 
-						include_entities = True):
+	def get_users_search(self, 
+						 term = None, 
+						 page = 1, 
+						 count = 20, 
+						 include_entities = True):
 
 		if term == None:
 			return None
@@ -34,6 +44,17 @@ class BasicinfoCrawler:
 	
 	'''
 	获取单个用户的信息
+
+	Parameters:
+		user_id (int, optional):
+            The id of the user to retrieve.
+        screen_name (str, optional):
+            The screen name of the user for whom to return results for.
+            Either a user_id or screen_name is required for this method.
+        include_entities (bool, optional):
+            The entities node will be omitted when set to False.
+	Returns:
+		A twitter.User instance representing that user
 	'''
 	def get_user(self,
 				 user_id = None, 
@@ -49,7 +70,14 @@ class BasicinfoCrawler:
 
 
 	'''
-	获取单个用户的信息并保存
+	获取单个用户的信息并保存（参考 get_user ）
+
+	参数：
+		table_name (str, optional):
+			存储数据表名，默认 user_task (保证数据库中存在该表)
+	
+	返回：
+		None
 	'''
 	def get_user_save(self,
 					  user_id = None, 
@@ -66,6 +94,15 @@ class BasicinfoCrawler:
 
 	'''
 	获取多个用户的信息，并存入数据库中
+
+	参数：
+		user_list (list, optional):
+			存放用户 user_id / screen_name 的列表
+		table_name (str, optional):
+			存储数据表名，默认 user_task (保证数据库中存在该表)
+		search_type (str, optional):
+			抓取方式，如果为 screen_name ，则认为 user_list 中 存放的是用户 screen_name，
+			否则认为 user_list 中 存放的是用户 user_id
 	'''
 	def get_all_users(self, 
 					  user_list = None, 
@@ -97,9 +134,12 @@ class BasicinfoCrawler:
 
 
 	'''
-	线程：获取多个用户信息
+	线程：获取多个用户信息（参考 get_all_users ）
 	'''
-	def get_users_thread(self, user_list = None, table_name  = "user_task", search_type = "user_id"):
+	def get_users_thread(self,
+						 user_list = None, 
+						 table_name  = "user_task", 
+						 search_type = "user_id"):
 		
 		if search_type != "screen_name":
 			while len(user_list) > 0:
@@ -114,8 +154,20 @@ class BasicinfoCrawler:
 
 	'''
 	保存用户信息
+
+	参数：
+		user(User, optional):
+			要保存的用户
+		table_name (str, optional):
+			存储数据表名，默认 user_task (保证数据库中存在该表)
 	'''
-	def save_user(self, user, table_name = "user_task"):
+	def save_user(self, 
+				  user = None, 
+				  table_name = "user_task"):
+		
+		if not user:
+			return
+
 		mysql = Mysql()
 		mysql.connect()
 

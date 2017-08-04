@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 import MySQLdb
 
 from config import MYSQL
@@ -5,7 +7,7 @@ from pymongo import MongoClient
 
 class Mysql:
 	def connect(self):
-		db = MySQLdb.connect(MYSQL['DB_HOST'], MYSQL['DB_USER'], MYSQL['DB_PASSWD'], MYSQL['DB_DATABASE'])
+		db = MySQLdb.connect(MYSQL['DB_HOST'], MYSQL['DB_USER'], MYSQL['DB_PASSWORD'], MYSQL['DB_DATABASE'])
 		cursor = db.cursor()
 		self.cursor = cursor
 		self.db = db

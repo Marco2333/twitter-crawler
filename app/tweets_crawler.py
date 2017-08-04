@@ -14,7 +14,26 @@ class TweetsCrawler:
 	get_api = Api().get_api
 
 	'''
-	获取用户推文信息，最多返回200条
+	Fetch the sequence of public Status messages for a single user.
+
+	Parameters:	
+		user_id (int, optional) – Specifies the ID of the user for whom to return the user_timeline.
+				Helpful for disambiguating when a valid user ID is also a valid screen name.
+		screen_name (str, optional) – Specifies the screen name of the user for whom to return the user_timeline.
+				Helpful for disambiguating when a valid screen name is also a user ID.
+		since_id (int, optional) – Returns results with an ID greater than (that is, more recent than) the specified ID. 
+				There are limits to the number of Tweets which can be accessed through the API. If the limit of Tweets has 
+				occurred since the since_id, the since_id will be forced to the oldest ID available.
+		max_id (int, optional) – Returns only statuses with an ID less than (that is, older than) or equal to the specified ID.
+		count (int, optional) – Specifies the number of statuses to retrieve. May not be greater than 200.
+		include_rts (bool, optional) – If True, the timeline will contain native retweets (if they exist) in addition to the standard stream of tweets.
+		trim_user (bool, optional) – If True, statuses will only contain the numerical user ID only. Otherwise a full user object will be returned for each status.
+		exclude_replies (bool, optional) – If True, this will prevent replies from appearing in the returned timeline. Using exclude_replies with the 
+				count parameter will mean you will receive up-to count tweets - this is because the count parameter retrieves that many tweets 
+				before filtering out retweets and replies. This parameter is only supported for JSON and XML responses.
+	
+	Returns:	
+		A sequence of Status instances, one for each message up to count
 	'''
 	def get_user_timeline(self,
 						  user_id = None,
@@ -40,7 +59,10 @@ class TweetsCrawler:
 
 
 	'''
-	获取用户所有推文信息，并保存在数据库中
+	获取用户所有推文信息，并保存在数据库(MongoDB)中（参考 get_user_timeline ）
+
+	参数：
+		collect_name：数据库集合名，默认 tweets
 	'''
 	def get_user_all_timeline(self,
 							  user_id = None,
@@ -102,7 +124,7 @@ class TweetsCrawler:
 	
 
 	'''
-	获取用户所有推文信息，并返回
+	获取用户所有推文信息，并返回（参考 get_user_timeline ）
 	'''
 	def get_user_all_timeline_return(self, 
 								     user_id = None,
@@ -170,6 +192,16 @@ class TweetsCrawler:
 
 	'''
 	获取所有用户推文信息
+
+	参数：
+		user_list (list, optional):
+			存放用户 user_id / screen_name 的列表
+		collect_name (str, optional):
+			存储数据集合名，默认 tweets
+		search_type (str, optional):
+			抓取方式，如果为 screen_name ，则认为 user_list 中 存放的是用户 screen_name，
+			否则认为 user_list 中 存放的是用户 user_id
+
 	'''
 	def get_all_users_timeline(self,
 							   user_list = None,
@@ -188,10 +220,10 @@ class TweetsCrawler:
 
 		while i < THREAD_NUM:
 			if i + 1 == THREAD_NUM:
-				crawler_thread = threading.Thread(target = self.get_users_timeline_thread, 
+				crawler_thread = threading.Thread(target = self.get_all_users_timeline_thread, 
 					args = (user_list[i * per_thread : ], collect_name, search_type, include_rts, exclude_replies,))
 			else:
-				crawler_thread = threading.Thread(target = self.get_users_timeline_thread, 
+				crawler_thread = threading.Thread(target = self.get_all_users_timeline_thread, 
 					args = (user_list[i * per_thread : (i + 1) * per_thread], collect_name, search_type, include_rts, exclude_replies,))
 			
 			crawler_thread.start()
@@ -204,14 +236,14 @@ class TweetsCrawler:
 
 
 	'''
-	线程：获取多个用户推文信息
+	线程：获取多个用户推文信息（参考 get_all_users_timeline ）
 	'''
-	def get_users_timeline_thread(self,
-								  user_list = [], 
-								  collect_name = "tweets", 
-								  search_type = "user_id", 
-								  include_rts = True, 
-								  exclude_replies = False):
+	def get_all_users_timeline_thread(self,
+									  user_list = [], 
+									  collect_name = "tweets", 
+									  search_type = "user_id", 
+									  include_rts = True, 
+									  exclude_replies = False):
 
 		if search_type != "screen_name":
 			while len(user_list) > 0:
@@ -232,7 +264,17 @@ class TweetsCrawler:
 
 
 	'''
-	根据推文ID获取推文信息
+	Returns a single status message, specified by the status_id parameter.
+
+	Parameters:	
+		status_id – The numeric ID of the status you are trying to retrieve.
+		trim_user – When set to True, each tweet returned in a timeline will include a user object including only the status authors numerical ID. 
+				Omit this parameter to receive the complete user object. [Optional]
+		include_entities – If False, the entities node will be disincluded. This node offers a variety of metadata about the tweet in a 
+				discreet structure, including: user_mentions, urls, and hashtags. [Optional]
+	
+	Returns:	
+		A twitter.Status instance representing that status message
 	'''
 	def get_status(self,
 				   status_id, 
@@ -249,7 +291,13 @@ class TweetsCrawler:
 
 
 	'''
-	根据推文ID获取所有推文信息
+	根据推文ID获取所有推文信息（参考 get_status ）
+
+	参数：
+		status_list (list, optional):
+			存放tweet id 的列表
+		collect_name (str, optional):
+			存储数据集合名，默认 status
 	'''
 	def get_all_status(self,
 					   status_list = [],
@@ -283,7 +331,7 @@ class TweetsCrawler:
 
 
 	'''
-	线程：根据推文ID获取所有推文信息
+	线程：根据推文ID获取所有推文信息（参考 get_all_status ）
 	'''
 	def get_all_status_thread(self,
 						      status_list = [],
@@ -351,4 +399,3 @@ class TweetsCrawler:
 
 if __name__ == '__main__':
 	ts = TweetsCrawler()
-	print ts.get_status(259255676642156544)

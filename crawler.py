@@ -94,9 +94,9 @@ def get_users_tweets_from_db(sql, collect_name = "tweets", search_type = "screen
 
 
 '''
-根据推文ID抓取推文，存放在数据库中（推文id存放在file_name中，每行一条）
+根据推文ID抓取推文，存放在数据库中（推文 id 存放在file_name中，每行一条）
 '''
-def get_tweet_list_by_statusid(file_name):
+def get_tweet_list_by_statusids(file_name):
 	file = open(file_name)
 
 	tweet_list = []
@@ -112,4 +112,4 @@ def get_tweet_list_by_statusid(file_name):
 
 
 if __name__ == "__main__":
-	get_tweet_list_by_statusid('./file/tweet_150w.txt')
+	get_tweet_list_by_statusids('./file/tweet_150w.txt')
