@@ -7,7 +7,7 @@ from twitter import error
 from api import Api, API_COUNT
 from decorator import generate_decorator
 
-handle_exception = generate_decorator(800)
+handle_exception = generate_decorator(720)
 
 class RelationCrawler:
 	get_api = Api().get_api
@@ -369,3 +369,4 @@ class RelationCrawler:
 
 if __name__ == '__main__':
 	rc = RelationCrawler()
+	print rc.get_followers_paged(screen_name='mrmarcohan')

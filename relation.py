@@ -139,7 +139,7 @@ def get_all_users_friends_thread(user_list):
 '''
 def get_user_all_friends_and_save(user_id):
 	cursor = -1
-	collect_name = "user_portrayal"
+	collect_name = "famous_friends"
 	db = MongoDB().connect()
 	collect = db[collect_name]
 
@@ -150,12 +150,32 @@ def get_user_all_friends_and_save(user_id):
 		if not out:
 			return None
 
-		cursor = out[0]
+		
 		friend_list = out[2]
 
 		if cursor == -1:
-			collect.update({"_id": long(user_id)}, {'$set': {'friends': friend_list}})
+			collect.insert_one({"_id": long(user_id), "friends": friend_list})
 		
 		else:
 			for f in friend_list:
-				collect.update({"_id": long(user_id)}, {'$push': {'friends': f}})
+				collect.update_one({"_id": long(user_id)}, {'$push': {'friends': f}})
+
+		cursor = out[0]
+
+
+if __name__ == '__main__':
+	mysql = Mysql()
+	mysql.connect()
+
+	sql = "select user_id from user_famous where friends_count <= 10000"
+
+	try:
+		users = mysql.fetchall(sql)
+	except Exception as e:
+		print e
+
+	user_list = []
+	for item in users:
+		user_list.append(item[0])
+	
+	get_all_users_friends(user_list)	
