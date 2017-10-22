@@ -26,11 +26,11 @@ def get_users_basicinfo_from_file(file_name, table_name = "user", search_type = 
 	user_list = []
 
 	while 1:
-	    lines = file.readlines(100000)
-	    if not lines:
-	        break
-	    for line in lines:
-	        user_list.append(line.strip())
+		lines = file.readlines(100000)
+		if not lines:
+			break
+		for line in lines:
+			user_list.append(line.strip())
 
 	basicinfo_crawler.get_all_users(user_list, table_name = table_name, search_type = search_type)
 
@@ -67,11 +67,11 @@ def get_users_tweets_from_file(file_name, collect_name = "tweets", search_type =
 	user_list = []
 
 	while 1:
-	    lines = file.readlines(100000)
-	    if not lines:
-	        break
-	    for line in lines:
-	        user_list.append(line.strip())
+		lines = file.readlines(100000)
+		if not lines:
+			break
+		for line in lines:
+			user_list.append(line.strip())
 
 	tweets_crawler.get_all_users_timeline(user_list, collect_name = collect_name, search_type = search_type)
 
@@ -101,11 +101,11 @@ def get_tweet_list_by_statusids(file_name):
 
 	tweet_list = []
 	while 1:
-	    lines = file.readlines(100000)
-	    if not lines:
-	        break
-	    for line in lines:
-	        tweet_list.append(line.strip())
+		lines = file.readlines(100000)
+		if not lines:
+			break
+		for line in lines:
+			tweet_list.append(line.strip())
 
 	tweets_crawler.get_all_status(tweet_list, 'tweets_100w')
 		
