@@ -417,3 +417,4 @@ class TweetsCrawler:
 
 if __name__ == '__main__':
 	ts = TweetsCrawler()
+	print len(ts.get_user_all_timeline_return(screen_name = 'mrmarcohan'))
