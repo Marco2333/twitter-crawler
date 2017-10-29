@@ -27,10 +27,10 @@ class BasicinfoCrawler:
 	Returns:	
 		A sequence of twitter.User instances, one for each message containing the term
 	'''
-	def get_users_search(self, 
-						 term = None, 
-						 page = 1, 
-						 count = 20, 
+	def get_users_search(self,
+						 term = None,
+						 page = 1,
+						 count = 20,
 						 include_entities = True):
 
 		if term == None:
@@ -57,8 +57,8 @@ class BasicinfoCrawler:
 		A twitter.User instance representing that user
 	'''
 	def get_user(self,
-				 user_id = None, 
-				 screen_name = None, 
+				 user_id = None,
+				 screen_name = None,
 				 include_entities = True):
 
 		if user_id == None and screen_name == None:
@@ -80,9 +80,9 @@ class BasicinfoCrawler:
 		None
 	'''
 	def get_user_save(self,
-					  user_id = None, 
+					  user_id = None,
 					  table_name = "user_task",
-					  screen_name = None, 
+					  screen_name = None,
 					  include_entities = True):
 
 		wrapper_func = handle_exception(self.get_user)
@@ -104,10 +104,10 @@ class BasicinfoCrawler:
 			抓取方式，如果为 screen_name ，则认为 user_list 中 存放的是用户 screen_name，
 			否则认为 user_list 中 存放的是用户 user_id
 	'''
-	def get_all_users(self, 
-					  user_list = None, 
-					  table_name = "user_task", 
-					  search_type = "user_id"):		
+	def get_all_users(self,
+					  user_list = None,
+					  table_name = "user_task",
+					  search_type = "user_id"):
 
 		if len(user_list) == 0:
 			return None
@@ -137,10 +137,10 @@ class BasicinfoCrawler:
 	线程：获取多个用户信息（参考 get_all_users ）
 	'''
 	def get_users_thread(self,
-						 user_list = None, 
-						 table_name  = "user_task", 
+						 user_list = None,
+						 table_name  = "user_task",
 						 search_type = "user_id"):
-		
+
 		if search_type != "screen_name":
 			while len(user_list) > 0:
 				user_id = user_list.pop(0)
@@ -161,8 +161,8 @@ class BasicinfoCrawler:
 		table_name (str, optional):
 			存储数据表名，默认 user_task (保证数据库中存在该表)
 	'''
-	def save_user(self, 
-				  user = None, 
+	def save_user(self,
+				  user = None,
 				  table_name = "user_task"):
 		
 		if not user:
@@ -187,7 +187,7 @@ class BasicinfoCrawler:
 			time_zone = 1 if user.time_zone else ''
 			utc_offset = 1 if user.utc_offset else ''
 
-			sql =  """INSERT INTO %s (user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
+			sql = """INSERT INTO %s (user_id, screen_name, name, location, created_at, description, statuses_count, friends_count, 
 					followers_count, favourites_count, lang, protected, time_zone, verified, utc_offset, geo_enabled, listed_count,
 					is_translator, default_profile_image, profile_background_color, profile_sidebar_fill_color, profile_image_url, crawler_date) VALUES
 					('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, '%s', %d, '%s', %d, '%s', %d, %d, %d, %d,
@@ -210,7 +210,6 @@ class BasicinfoCrawler:
 			return
 
 		mysql.close()
-
 
 
 if __name__ == '__main__':

@@ -89,21 +89,21 @@ class TweetsCrawler:
 		while len(tweets) > 0:
 			try:
 				if flag:
-					tweets = get_api().GetUserTimeline(user_id = user_id, 
-													   screen_name = screen_name, 
-													   include_rts = include_rts, 
+					tweets = get_api().GetUserTimeline(user_id = user_id,
+													   screen_name = screen_name,
+													   include_rts = include_rts,
 													   exclude_replies = exclude_replies,
-													   trim_user = True, 
+													   trim_user = True,
 													   count = 200)
 					flag = False
 
 				else:
-					tweets = get_api().GetUserTimeline(user_id = user_id, 
+					tweets = get_api().GetUserTimeline(user_id = user_id,
 													   screen_name = screen_name,
-													   include_rts = include_rts, 
+													   include_rts = include_rts,
 													   exclude_replies = exclude_replies,
-							 						   trim_user = True, 
-													   count = 200, 
+							 						   trim_user = True,
+													   count = 200,
 													   max_id = tweets[-1].id - 1)
 
 			except error.TwitterError as te:
@@ -123,7 +123,7 @@ class TweetsCrawler:
 				except Exception as ee:
 					print ee
 					break
-			except Exception as e:	
+			except Exception as e:
 				break
 				
 			for tt in tweets:
@@ -160,20 +160,20 @@ class TweetsCrawler:
 		while len(tweets) > 0:
 			try:
 				if flag:
-					tweets = get_api().GetUserTimeline(user_id = user_id, 
-													   screen_name = screen_name, 
-													   include_rts = include_rts, 
+					tweets = get_api().GetUserTimeline(user_id = user_id,
+													   screen_name = screen_name,
+													   include_rts = include_rts,
 													   exclude_replies = exclude_replies,
-													   trim_user = True, 
+													   trim_user = True,
 													   count = 200)
 					flag = False
 
 				else:
 					tweets = get_api().GetUserTimeline(user_id = user_id,
 													   screen_name = screen_name,
-												 	   include_rts = include_rts,
+													   include_rts = include_rts,
 													   exclude_replies = exclude_replies,
-							 					 	   trim_user = True,
+							 						   trim_user = True,
 													   count = 200,
 													   max_id = tweets[-1].id - 1)
 
@@ -295,17 +295,17 @@ class TweetsCrawler:
 		A twitter.Status instance representing that status message
 	'''
 	def get_status(self,
-				   status_id,
-				   trim_user = True,
+				   status_id, 
+				   trim_user = True, 
 				   include_entities = True):
 
 		if status_id == None:
 			return None
 
-		return  self.get_api().GetStatus(status_id = status_id,
-										 trim_user = trim_user,
-										 include_my_retweet = False,
-										 include_entities = include_entities)
+		return self.get_api().GetStatus(status_id = status_id,
+										trim_user = trim_user,
+										include_my_retweet = False,
+										include_entities = include_entities)
 
 
 	'''
@@ -365,9 +365,6 @@ class TweetsCrawler:
 		n = 0
 		while len(status_list) > 0:
 			n += 1
-
-			if n % 1000 == 0:
-				print n
 
 			status_id = status_list.pop(0)
 			status_obj = wrapper_func(status_id)

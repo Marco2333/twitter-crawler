@@ -42,6 +42,8 @@ $RECYCLE.BIN/
 # Directories potentially created on remote AFP share
 .AppleDB
 .AppleDesktop
-
-config.py
-*.pyc
+Network Trash Folder
+Temporary Items
+.apdisk
+.pyc
+app/config.py

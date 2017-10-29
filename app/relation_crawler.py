@@ -2,7 +2,6 @@
 import time
 import threading
 
-# from config import THREAD_NUM
 from twitter import error
 from api import Api, API_COUNT
 from decorator import generate_decorator
@@ -60,7 +59,7 @@ class RelationCrawler:
 	'''
 	Fetch a sequence of user ids, one for each friend. Returns a list of all the given user’s friends’ IDs. 
 
-	Parameters:	
+	Parameters:
 		user_id – The id of the user to retrieve the id list for. [Optional]
 		screen_name – The screen_name of the user to retrieve the id list for. [Optional]
 		cursor – Specifies the Twitter API Cursor location to start at. Note: there are pagination limits. [Optional]
@@ -191,9 +190,9 @@ class RelationCrawler:
 											  skip_status = skip_status,
 											  include_user_entities = include_user_entities)
 
-	# '''
-	# 获取用户所有朋友的id，并保存
-	# '''
+	'''
+	获取用户所有朋友的id，并保存
+	'''
 	# def get_all_friendids(self, 
 	# 					  user_id = None, 
 	# 					  screen_name = None):
@@ -214,13 +213,13 @@ class RelationCrawler:
 	'''
 	Returns a list of twitter user id’s for every person that is following the specified user.
 
-	Parameters:	
+	Parameters:
 		user_id – The id of the user to retrieve the id list for. [Optional]
 		screen_name – The screen_name of the user to retrieve the id list for. [Optional]
 		cursor – Specifies the Twitter API Cursor location to start at. Note: there are pagination limits. [Optional]
 		total_count – The total amount of UIDs to retrieve. Good if the account has many followers and you don’t want to get rate limited. 
 
-	Returns:	
+	Returns:
 		A list of integers, one for each user id.
 	'''
 	def get_followerids(self,
@@ -347,9 +346,9 @@ class RelationCrawler:
 												include_user_entities = include_user_entities)
 
 
-	# '''
-	# 获取用户所有粉丝的id，并保存
-	# '''
+	'''
+	获取用户所有粉丝的id，并保存
+	'''
 	# def get_all_followersids(self, 
 	# 						 user_id = None, 
 	# 						 screen_name = None):
