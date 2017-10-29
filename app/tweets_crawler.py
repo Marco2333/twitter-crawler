@@ -63,11 +63,11 @@ class TweetsCrawler:
 	获取用户所有推文信息，并保存在数据库(MongoDB)中（参考 get_user_timeline ）
 
 	参数：
-		collect_name：数据库集合名，默认 tweets
+		collect_name：数据库集合名，默认 tweets_task
 	'''
 	def get_user_all_timeline(self,
 							  user_id = None,
-							  collect_name = "tweets",
+							  collect_name = "tweets_task",
 							  screen_name = None,
 							  include_rts = True,
 							  exclude_replies = False):
@@ -215,7 +215,7 @@ class TweetsCrawler:
 		user_list (list, optional):
 			存放用户 user_id / screen_name 的列表
 		collect_name (str, optional):
-			存储数据集合名，默认 tweets
+			存储数据集合名，默认 tweets_task
 		search_type (str, optional):
 			抓取方式，如果为 screen_name ，则认为 user_list 中 存放的是用户 screen_name，
 			否则认为 user_list 中 存放的是用户 user_id
@@ -223,7 +223,7 @@ class TweetsCrawler:
 	'''
 	def get_all_users_timeline(self,
 							   user_list = None,
-							   collect_name = "tweets",
+							   collect_name = "tweets_task",
 							   search_type = "user_id",
 							   include_rts = True,
 							   exclude_replies = False):
@@ -258,7 +258,7 @@ class TweetsCrawler:
 	'''
 	def get_all_users_timeline_thread(self,
 									  user_list = [],
-									  collect_name = "tweets",
+									  collect_name = "tweets_task",
 									  search_type = "user_id",
 									  include_rts = True,
 									  exclude_replies = False):
@@ -414,4 +414,4 @@ class TweetsCrawler:
 
 if __name__ == '__main__':
 	ts = TweetsCrawler()
-	print len(ts.get_user_all_timeline_return(screen_name = 'mrmarcohan'))
+	print ts.get_user_all_timeline(screen_name = 'mrmarcohan')
