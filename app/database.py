@@ -2,8 +2,10 @@
 
 import MySQLdb
 
-from config import MYSQL, MONGO_DB
+from py2neo import Graph	
 from pymongo import MongoClient
+from config import MYSQL, MONGO_DB, NEO4J
+
 
 class Mysql:
 	def connect(self):
@@ -35,3 +37,12 @@ class MongoDB:
 		self.db = db
 
 		return db
+
+
+class Neo4j:
+	def connect(self):
+		graph = Graph(NEO4J['DB_HOST'], 
+					 username = NEO4J['DB_USER'], 
+					 password = NEO4J['DB_PASSWORD'])
+
+		return graph
