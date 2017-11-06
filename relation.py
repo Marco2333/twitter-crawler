@@ -149,7 +149,6 @@ def get_user_all_friends_and_save(user_id):
 														 count = 5000)
 		if not out:
 			return None
-
 		
 		friend_list = out[2]
 

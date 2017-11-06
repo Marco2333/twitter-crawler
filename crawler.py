@@ -37,10 +37,11 @@ def get_user_all_info(user_id = None, screen_name = None):
 		'profile_background_color': user.profile_background_color,
 		'default_profile_image': user.default_profile_image,
 		'created_at': user.created_at,
-		'profile_banner_url': user.profile_banner_url,
 		'time_zone': user.time_zone,
 		'profile_image_url': user.profile_image_url,
 		'listed_count': user.listed_count,
+		'geo_enabled': user.geo_enabled,
+		'profile_sidebar_fill_color': user.profile_sidebar_fill_color,
 		'tweets': tweets
 	}
 
@@ -60,11 +61,11 @@ def get_users_basicinfo_from_file(file_name, table_name = "user", search_type = 
 	user_list = []
 
 	while 1:
-	    lines = file.readlines(100000)
-	    if not lines:
-	        break
-	    for line in lines:
-	        user_list.append(line.strip())
+		lines = file.readlines(100000)
+		if not lines:
+			break
+		for line in lines:
+			user_list.append(line.strip())
 
 	basicinfo_crawler.get_all_users(user_list, table_name = table_name, search_type = search_type)
 
@@ -101,11 +102,11 @@ def get_users_tweets_from_file(file_name, collect_name = "tweets", search_type =
 	user_list = []
 
 	while 1:
-	    lines = file.readlines(100000)
-	    if not lines:
-	        break
-	    for line in lines:
-	        user_list.append(line.strip())
+		lines = file.readlines(100000)
+		if not lines:
+			break
+		for line in lines:
+			user_list.append(line.strip())
 
 	tweets_crawler.get_all_users_timeline(user_list, collect_name = collect_name, search_type = search_type)
 
@@ -135,11 +136,11 @@ def get_tweet_list_by_statusids(file_name):
 
 	tweet_list = []
 	while 1:
-	    lines = file.readlines(100000)
-	    if not lines:
-	        break
-	    for line in lines:
-	        tweet_list.append(line.strip())
+		lines = file.readlines(100000)
+		if not lines:
+			break
+		for line in lines:
+			tweet_list.append(line.strip())
 
 	tweets_crawler.get_all_status(tweet_list, 'tweets_100w')
 		
