@@ -121,10 +121,12 @@ def get_user_info(user_id):
 		'profile_background_color': user.profile_background_color,
 		'default_profile_image': user.default_profile_image,
 		'created_at': user.created_at,
-		'profile_banner_url': user.profile_banner_url,
 		'time_zone': user.time_zone,
 		'profile_image_url': user.profile_image_url,
 		'listed_count': user.listed_count,
+		'geo_enabled': user.geo_enabled,
+		'profile_sidebar_fill_color': user.profile_sidebar_fill_color,
+		'profile_banner_url': user.profile_banner_url
 		'tweets': tweets
 	}
 

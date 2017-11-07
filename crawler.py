@@ -42,6 +42,7 @@ def get_user_all_info(user_id = None, screen_name = None):
 		'listed_count': user.listed_count,
 		'geo_enabled': user.geo_enabled,
 		'profile_sidebar_fill_color': user.profile_sidebar_fill_color,
+		'profile_banner_url': user.profile_banner_url,
 		'tweets': tweets
 	}
 
