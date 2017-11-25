@@ -148,4 +148,45 @@ def get_tweet_list_by_statusids(file_name):
 
 
 if __name__ == "__main__":
-	get_tweet_list_by_statusids('./file/tweet_150w.txt')
+		api = Api()
+
+	# print help(api.get_api().GetUser)
+	# print type(api.get_api().GetUser(screen_name = 'mrmarcohan', return_json = True))
+	db = MongoDB().connect()
+	collect = db['typical']
+	# # file = open('./out.txt', 'w')
+	# # tweets = collect.find({}, {'_id': 1}).limit(80000)
+	# # for item in tweets:
+	# # 	file.write(str(item['_id']) + '\n')
+	# collect = db['typical']
+
+	# # users = collect.find({}, {'category': 1, 'category_score': 1, 'screen_name': 1})
+
+	users = collect.find({}, {'tweets': 0})
+
+	count = 0
+	for item in users:
+		max_category = max(item['category_score'], key = item['category_score'].get)
+		
+		if max_category != item['category'] and item['category'] == 'Entertainment':
+			print max_category
+
+
+
+	print count
+	# # count = 0
+	# # for item in users:
+	# # 	if 'Sports' == max(item['category_score'], key = item['category_score'].get):
+	# # 		count += 1
+	# # print count
+	# users = collect.find({}, {'_id': 1})
+
+	# for item in users:
+	# 	try:
+	# 		user = basicinfo_crawler.get_user(user_id = item['_id'])
+	# 	except Exception as e:
+	# 		print e
+	# 		print item['_id']
+	# 		continue
+
+	# 	collect.update_one({'_id': item['_id']}, {"$set": {'geo_enabled': user.geo_enabled, 'profile_sidebar_fill_color': user.profile_sidebar_fill_color}})
